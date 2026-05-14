@@ -11,7 +11,7 @@ class AppSettings: ObservableObject {
     private init() {}
 }
 
-enum AppConstants {
+nonisolated enum AppConstants {
     static let totalDurationRange: ClosedRange<Double> = 100...3000
     static let totalDurationStep: Double = 100
     static let jitterRange: ClosedRange<Double> = 0...500

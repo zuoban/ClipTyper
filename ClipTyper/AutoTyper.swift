@@ -25,8 +25,8 @@ class AutoTyper: ObservableObject {
             characterTyper: CGEventCharacterTyper(),
             settingsProvider: {
                 TypingConfiguration(
-                    totalDuration: AppSettings.shared.totalDurationMs / 1000.0,
-                    jitter: AppSettings.shared.typingJitterMs / 1000.0
+                    totalDurationMilliseconds: AppSettings.shared.totalDurationMs,
+                    typingJitterMilliseconds: AppSettings.shared.typingJitterMs
                 )
             }
         )
