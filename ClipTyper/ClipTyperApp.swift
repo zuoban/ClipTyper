@@ -42,19 +42,19 @@ struct AppMenuView: View {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("总输入时间")
+                        Text("Total Duration")
                             .font(.subheadline)
                         Spacer()
                         Text("\(Int(settings.totalDurationMs)) ms")
                             .font(.caption.monospacedDigit())
                             .foregroundColor(.secondary)
                     }
-                    Slider(value: $settings.totalDurationMs, in: 100...10000, step: 100)
+                    Slider(value: $settings.totalDurationMs, in: 100...3000, step: 100)
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("随机抖动")
+                        Text("Jitter")
                             .font(.subheadline)
                         Spacer()
                         Text("\(Int(settings.typingJitterMs)) ms")
@@ -69,7 +69,7 @@ struct AppMenuView: View {
             
             // Shortcut Recorder
             HStack {
-                Text("触发快捷键")
+                Text("Shortcut")
                     .font(.subheadline)
                 Spacer()
                 KeyboardShortcuts.Recorder(for: .toggleTyping)
@@ -89,7 +89,7 @@ struct AppMenuView: View {
                         Circle()
                             .fill(isTrusted ? Color.green : Color.red)
                             .frame(width: 8, height: 8)
-                        Text(isTrusted ? "权限正常" : "需授权")
+                        Text(isTrusted ? "Permission OK" : "Authorize")
                             .font(.caption)
                     }
                 }
@@ -97,7 +97,7 @@ struct AppMenuView: View {
                 
                 Spacer()
                 
-                Button("退出") {
+                Button("Quit") {
                     NSApplication.shared.terminate(nil)
                 }
                 .controlSize(.small)
