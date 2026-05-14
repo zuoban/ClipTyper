@@ -22,4 +22,12 @@ final class TypingPlanTests: XCTestCase {
 
         XCTAssertEqual(plan.clampedJitter, 0.5, accuracy: 0.000_001)
     }
+
+    func testInfiniteConfigurationFallsBackToZeroTiming() {
+        let plan = TypingPlan(text: "abcd", totalDuration: .infinity, jitter: .infinity)
+
+        XCTAssertEqual(plan.totalDuration, 0)
+        XCTAssertEqual(plan.clampedJitter, 0)
+        XCTAssertEqual(plan.targetElapsedTime(afterCharacterAt: 2), 0)
+    }
 }
