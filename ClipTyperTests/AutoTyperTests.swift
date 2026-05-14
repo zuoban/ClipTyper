@@ -36,6 +36,21 @@ final class AutoTyperTests: XCTestCase {
         XCTAssertEqual(typer.typedCharacters, ["a", "b"])
     }
 
+    func testStartTypingRejectsTextThatExceedsMaximumLength() {
+        let typer = RecordingCharacterTyper()
+        let autoTyper = makeAutoTyper(
+            clipboardText: "abcd",
+            characterTyper: typer,
+            maximumCharacterCount: 3
+        )
+
+        autoTyper.startTyping()
+
+        XCTAssertFalse(autoTyper.isTyping)
+        XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Clipboard text is too long", comment: ""))
+        XCTAssertTrue(typer.typedCharacters.isEmpty)
+    }
+
     func testStopTypingCancelsInProgressTyping() async {
         let typer = RecordingCharacterTyper(delayNanoseconds: 30_000_000)
         let autoTyper = makeAutoTyper(clipboardText: "abcd", characterTyper: typer)
@@ -54,7 +69,8 @@ final class AutoTyperTests: XCTestCase {
     private func makeAutoTyper(
         clipboardText: String?,
         permissionHandler: StubPermissionHandler? = nil,
-        characterTyper: RecordingCharacterTyper? = nil
+        characterTyper: RecordingCharacterTyper? = nil,
+        maximumCharacterCount: Int = 5_000
     ) -> AutoTyper {
         let permissionHandler = permissionHandler ?? StubPermissionHandler(isTrusted: true)
         let characterTyper = characterTyper ?? RecordingCharacterTyper()
@@ -67,6 +83,7 @@ final class AutoTyperTests: XCTestCase {
                 TypingConfiguration(totalDuration: 0.01, jitter: 0)
             },
             initialDelayNanoseconds: 0,
+            maximumCharacterCount: maximumCharacterCount,
             feedbackDurationNanoseconds: 1_000_000_000
         )
     }

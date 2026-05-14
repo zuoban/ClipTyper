@@ -9,6 +9,7 @@
 "Accessibility Permission Required" = "需要辅助功能权限";
 "ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings." = "ClipTyper 需要辅助功能权限来模拟按键。请在《系统设置》中允许。";
 "ClipTyper" = "ClipTyper";
+"Clipboard text is too long" = "剪贴板文本过长";
 "No text in clipboard" = "剪贴板中无文本";
 "Ready" = "就绪";
 "Status" = "状态";

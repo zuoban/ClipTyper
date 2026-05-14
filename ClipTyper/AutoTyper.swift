@@ -15,6 +15,7 @@ class AutoTyper: ObservableObject {
     private let characterTyper: CharacterTyping
     private let settingsProvider: () -> TypingConfiguration
     private let initialDelayNanoseconds: UInt64
+    private let maximumCharacterCount: Int
     private let feedbackDurationNanoseconds: UInt64
 
     convenience init() {
@@ -37,6 +38,7 @@ class AutoTyper: ObservableObject {
         characterTyper: CharacterTyping,
         settingsProvider: @escaping () -> TypingConfiguration,
         initialDelayNanoseconds: UInt64 = 200_000_000,
+        maximumCharacterCount: Int = 5_000,
         feedbackDurationNanoseconds: UInt64 = 2_000_000_000
     ) {
         self.clipboardProvider = clipboardProvider
@@ -44,6 +46,7 @@ class AutoTyper: ObservableObject {
         self.characterTyper = characterTyper
         self.settingsProvider = settingsProvider
         self.initialDelayNanoseconds = initialDelayNanoseconds
+        self.maximumCharacterCount = maximumCharacterCount
         self.feedbackDurationNanoseconds = feedbackDurationNanoseconds
     }
     
@@ -72,12 +75,17 @@ class AutoTyper: ObservableObject {
             return
         }
 
-        isTyping = true
-        feedbackMessage = NSLocalizedString("Typing...", comment: "")
-
         // Capture settings on MainActor
         let configuration = settingsProvider()
         let plan = TypingPlan(text: text, totalDuration: configuration.totalDuration, jitter: configuration.jitter)
+        guard plan.characterCount <= maximumCharacterCount else {
+            showFeedback(NSLocalizedString("Clipboard text is too long", comment: ""))
+            return
+        }
+
+        isTyping = true
+        feedbackMessage = NSLocalizedString("Typing...", comment: "")
+
         let runID = UUID()
         typingRunID = runID
 
