@@ -119,6 +119,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         registerShortcuts()
+        
+        // Check permissions on launch and prompt if needed
+        checkPermissions()
+    }
+    
+    private func checkPermissions() {
+        if !AccessibilityHelper.isTrusted {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                let alert = NSAlert()
+                alert.messageText = NSLocalizedString("Accessibility Permission Required", comment: "")
+                alert.informativeText = NSLocalizedString("ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings.", comment: "")
+                alert.addButton(withTitle: NSLocalizedString("Authorize", comment: ""))
+                alert.addButton(withTitle: NSLocalizedString("Quit", comment: ""))
+                
+                let response = alert.runModal()
+                if response == .alertFirstButtonReturn {
+                    AccessibilityHelper.requestPermission()
+                } else if response == .alertSecondButtonReturn {
+                    NSApp.terminate(nil)
+                }
+            }
+        }
     }
     
     private func registerShortcuts() {

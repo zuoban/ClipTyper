@@ -6,3 +6,5 @@
 "Quit" = "退出";
 "ms" = "毫秒";
 "Accessibility Permission" = "辅助功能权限";
+"Accessibility Permission Required" = "需要辅助功能权限";
+"ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings." = "ClipTyper 需要辅助功能权限来模拟按键。请在“系统设置”中允许。";

@@ -6,3 +6,5 @@
 "Quit" = "Quit";
 "ms" = "ms";
 "Accessibility Permission" = "Accessibility Permission";
+"Accessibility Permission Required" = "Accessibility Permission Required";
+"ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings." = "ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings.";
