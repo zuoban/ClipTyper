@@ -20,7 +20,7 @@ ClipTyper 是一款专为 macOS 设计的原生菜单栏工具，它可以模拟
 
 ### 安装要求
 
-*   macOS 13.0 或更高版本。
+*   macOS 14.0 或更高版本。
 *   需要授予“辅助功能（Accessibility）”权限。
 
 ### 使用说明
@@ -49,7 +49,7 @@ ClipTyper is a native macOS menu bar utility that simulates character-by-charact
 
 ### Requirements
 
-*   macOS 13.0 or later.
+*   macOS 14.0 or later.
 *   Accessibility permissions are required to simulate keystrokes.
 
 ### How to Use
