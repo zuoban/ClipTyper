@@ -1,5 +1,4 @@
 import Foundation
-import Cocoa
 import Combine
 
 @MainActor
@@ -11,8 +10,42 @@ class AutoTyper: ObservableObject {
     private var typingTask: Task<Void, Never>?
     private var feedbackClearTask: Task<Void, Never>?
     private var typingRunID: UUID?
+    private let clipboardProvider: ClipboardTextProviding
+    private let permissionHandler: AccessibilityPermissionHandling
+    private let characterTyper: CharacterTyping
+    private let settingsProvider: () -> TypingConfiguration
+    private let initialDelayNanoseconds: UInt64
+    private let feedbackDurationNanoseconds: UInt64
+
+    convenience init() {
+        self.init(
+            clipboardProvider: SystemClipboardProvider(),
+            permissionHandler: SystemAccessibilityPermissionHandler(),
+            characterTyper: CGEventCharacterTyper(),
+            settingsProvider: {
+                TypingConfiguration(
+                    totalDuration: AppSettings.shared.totalDurationMs / 1000.0,
+                    jitter: AppSettings.shared.typingJitterMs / 1000.0
+                )
+            }
+        )
+    }
     
-    private init() {}
+    init(
+        clipboardProvider: ClipboardTextProviding,
+        permissionHandler: AccessibilityPermissionHandling,
+        characterTyper: CharacterTyping,
+        settingsProvider: @escaping () -> TypingConfiguration,
+        initialDelayNanoseconds: UInt64 = 200_000_000,
+        feedbackDurationNanoseconds: UInt64 = 2_000_000_000
+    ) {
+        self.clipboardProvider = clipboardProvider
+        self.permissionHandler = permissionHandler
+        self.characterTyper = characterTyper
+        self.settingsProvider = settingsProvider
+        self.initialDelayNanoseconds = initialDelayNanoseconds
+        self.feedbackDurationNanoseconds = feedbackDurationNanoseconds
+    }
     
     func toggleTyping() {
         if isTyping {
@@ -28,13 +61,13 @@ class AutoTyper: ObservableObject {
         feedbackMessage = nil
 
         // Check accessibility permission
-        guard AccessibilityHelper.isTrusted else {
-            showPermissionAlert()
+        guard permissionHandler.isTrusted else {
+            permissionHandler.handlePermissionRequired()
             return
         }
 
         // Snapshot clipboard content
-        guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else {
+        guard let text = clipboardProvider.currentText(), !text.isEmpty else {
             showFeedback(NSLocalizedString("No text in clipboard", comment: ""))
             return
         }
@@ -43,15 +76,14 @@ class AutoTyper: ObservableObject {
         feedbackMessage = NSLocalizedString("Typing...", comment: "")
 
         // Capture settings on MainActor
-        let totalDuration = AppSettings.shared.totalDurationMs / 1000.0 // seconds
-        let jitter = AppSettings.shared.typingJitterMs / 1000.0 // seconds
-        let plan = TypingPlan(text: text, totalDuration: totalDuration, jitter: jitter)
+        let configuration = settingsProvider()
+        let plan = TypingPlan(text: text, totalDuration: configuration.totalDuration, jitter: configuration.jitter)
         let runID = UUID()
         typingRunID = runID
 
-        typingTask = Task.detached(priority: .userInitiated) { [plan, runID] in
+        typingTask = Task.detached(priority: .userInitiated) { [plan, runID, initialDelayNanoseconds, characterTyper] in
             // Initial delay to let the OS and target app stabilize after hotkey press
-            try? await Task.sleep(nanoseconds: UInt64(Self.initialDelayMs * 1_000_000))
+            try? await Task.sleep(nanoseconds: initialDelayNanoseconds)
             if Task.isCancelled {
                 await self.finishTyping(runID: runID, feedback: nil)
                 return
@@ -62,7 +94,7 @@ class AutoTyper: ObservableObject {
             for (index, char) in plan.characters.enumerated() {
                 if Task.isCancelled { break }
 
-                await self.typeCharacter(char)
+                await characterTyper.typeCharacter(char)
 
                 // Deadline-based timing to prevent drift
                 let targetElapsed = plan.targetElapsedTime(afterCharacterAt: index)
@@ -89,22 +121,6 @@ class AutoTyper: ObservableObject {
         showFeedback(NSLocalizedString("Typing stopped", comment: ""))
     }
 
-    private func showPermissionAlert() {
-        let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Accessibility Permission Required", comment: "")
-        alert.informativeText = NSLocalizedString("ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings.", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("Authorize", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Quit", comment: ""))
-
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn {
-            AccessibilityHelper.requestPermission()
-            AccessibilityHelper.openSystemSettings()
-        } else if response == .alertSecondButtonReturn {
-            NSApp.terminate(nil)
-        }
-    }
-
     private func finishTyping(runID: UUID, feedback: String?) {
         guard typingRunID == runID else { return }
 
@@ -124,32 +140,10 @@ class AutoTyper: ObservableObject {
         feedbackMessage = message
 
         feedbackClearTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(nanoseconds: feedbackDurationNanoseconds)
             guard !Task.isCancelled else { return }
             self.feedbackMessage = nil
             self.feedbackClearTask = nil
         }
     }
-    
-    nonisolated private func typeCharacter(_ char: Character) async {
-        let source = CGEventSource(stateID: .combinedSessionState)
-        let utf16Chars = Array(String(char).utf16)
-
-        // Key Down
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
-        keyDown?.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: utf16Chars)
-        keyDown?.post(tap: .cghidEventTap)
-
-        // Non-blocking sleep between down and up
-        try? await Task.sleep(nanoseconds: Self.keyDownUpDelayNanoseconds)
-
-        // Key Up
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
-        keyUp?.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: utf16Chars)
-        keyUp?.post(tap: .cghidEventTap)
-    }
-
-    // Timing constants
-    private static let initialDelayMs: Double = 200
-    private static let keyDownUpDelayNanoseconds: UInt64 = 1_000_000 // 1ms
 }
