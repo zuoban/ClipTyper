@@ -67,6 +67,12 @@ jobs:
     needs: build
     runs-on: macos-latest
     if: startsWith(github.ref, 'refs/tags/')
+    env:
+      DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
+      DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
     steps:
       - name: Download Build Artifact
@@ -74,6 +80,22 @@ jobs:
         with:
           name: ClipTyper-app
           path: build
+
+      - name: Import Developer ID Certificate
+        if: ${{ env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && env.DEVELOPER_ID_CERTIFICATE_PASSWORD != '' }}
+        run: |
+          echo "$DEVELOPER_ID_CERTIFICATE_BASE64" | base64 -d > certificate.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "$DEVELOPER_ID_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+
+      - name: Code Sign Application
+        if: ${{ env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && env.DEVELOPER_ID_CERTIFICATE_PASSWORD != '' }}
+        run: |
+          codesign --force --deep --options runtime --sign "Developer ID Application" "build/ClipTyper.app"
+          codesign --verify --deep --strict --verbose=2 "build/ClipTyper.app"
 
       - name: Package to DMG
         run: |
@@ -93,25 +115,12 @@ jobs:
             "staging/"
 
       - name: Code Sign DMG (optional)
-        if: ${{ env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' }}
-        env:
-          DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
-          DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+        if: ${{ env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && env.DEVELOPER_ID_CERTIFICATE_PASSWORD != '' }}
         run: |
-          echo "$DEVELOPER_ID_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security import certificate.p12 -k build.keychain -P "$DEVELOPER_ID_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
           codesign --force --options runtime --sign "Developer ID Application" "dist/ClipTyper-${{ github.ref_name }}.dmg"
 
       - name: Notarize DMG
-        if: ${{ env.APPLE_ID != '' }}
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        if: ${{ env.APPLE_ID != '' && env.APPLE_ID_PASSWORD != '' && env.APPLE_TEAM_ID != '' }}
         run: |
           xcrun notarytool submit "dist/ClipTyper-${{ github.ref_name }}.dmg" \
             --apple-id "$APPLE_ID" \
