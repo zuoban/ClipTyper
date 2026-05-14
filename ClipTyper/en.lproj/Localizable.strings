@@ -8,3 +8,5 @@
 "Accessibility Permission" = "Accessibility Permission";
 "Accessibility Permission Required" = "Accessibility Permission Required";
 "ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings." = "ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings.";
+"ClipTyper" = "ClipTyper";
+"No text in clipboard" = "No text in clipboard";
