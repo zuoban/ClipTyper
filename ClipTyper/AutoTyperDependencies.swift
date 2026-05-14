@@ -43,6 +43,45 @@ protocol AccessibilityPermissionHandling {
     func handlePermissionRequired()
 }
 
+@MainActor
+protocol AccessibilityPermissionPrompting {
+    func presentPermissionPrompt()
+}
+
+@MainActor
+struct AccessibilityPermissionPromptCoordinator {
+    typealias PermissionCheckScheduler = (@escaping @MainActor @Sendable () -> Void) -> Void
+
+    private let isAccessibilityTrusted: @MainActor () -> Bool
+    private let permissionPrompter: any AccessibilityPermissionPrompting
+    private let schedulePermissionCheck: PermissionCheckScheduler
+
+    init(
+        isAccessibilityTrusted: (@MainActor () -> Bool)? = nil,
+        permissionPrompter: (any AccessibilityPermissionPrompting)? = nil,
+        schedulePermissionCheck: PermissionCheckScheduler? = nil
+    ) {
+        self.isAccessibilityTrusted = isAccessibilityTrusted ?? { AccessibilityHelper.isTrusted }
+        self.permissionPrompter = permissionPrompter ?? SystemAccessibilityPermissionPrompter()
+        self.schedulePermissionCheck = schedulePermissionCheck ?? { action in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                Task { @MainActor in
+                    action()
+                }
+            }
+        }
+    }
+
+    func promptForPermissionsIfNeeded() {
+        guard !isAccessibilityTrusted() else { return }
+
+        schedulePermissionCheck { [isAccessibilityTrusted, permissionPrompter] in
+            guard !isAccessibilityTrusted() else { return }
+            permissionPrompter.presentPermissionPrompt()
+        }
+    }
+}
+
 nonisolated protocol CharacterTyping: Sendable {
     func typeCharacter(_ char: Character) async
 }
@@ -54,11 +93,24 @@ struct SystemClipboardProvider: ClipboardTextProviding {
 }
 
 struct SystemAccessibilityPermissionHandler: AccessibilityPermissionHandling {
+    private let permissionPrompter: any AccessibilityPermissionPrompting
+
+    @MainActor
+    init(permissionPrompter: (any AccessibilityPermissionPrompting)? = nil) {
+        self.permissionPrompter = permissionPrompter ?? SystemAccessibilityPermissionPrompter()
+    }
+
     var isTrusted: Bool {
         AccessibilityHelper.isTrusted
     }
 
     func handlePermissionRequired() {
+        permissionPrompter.presentPermissionPrompt()
+    }
+}
+
+struct SystemAccessibilityPermissionPrompter: AccessibilityPermissionPrompting {
+    func presentPermissionPrompt() {
         let alert = NSAlert()
         alert.messageText = NSLocalizedString("Accessibility Permission Required", comment: "")
         alert.informativeText = NSLocalizedString("ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings.", comment: "")
