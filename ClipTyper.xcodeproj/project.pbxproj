@@ -10,14 +10,30 @@
 		5DD2A1952FB63B7D0029C141 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 5DD2A1942FB63B7D0029C141 /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		5DD2A2102FB700000029C141 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5DD2A0FF2FB62DB30029C141 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5DD2A1062FB62DB30029C141;
+			remoteInfo = ClipTyper;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		5DD2A1072FB62DB30029C141 /* ClipTyper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClipTyper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5DD2A2012FB700000029C141 /* ClipTyperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClipTyperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5DD2A1092FB62DB30029C141 /* ClipTyper */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ClipTyper;
+			sourceTree = "<group>";
+		};
+		5DD2A2022FB700000029C141 /* ClipTyperTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ClipTyperTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -31,6 +47,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5DD2A2032FB700000029C141 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -38,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				5DD2A1092FB62DB30029C141 /* ClipTyper */,
+				5DD2A2022FB700000029C141 /* ClipTyperTests */,
 				5DD2A1082FB62DB30029C141 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				5DD2A1072FB62DB30029C141 /* ClipTyper.app */,
+				5DD2A2012FB700000029C141 /* ClipTyperTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +101,29 @@
 			productReference = 5DD2A1072FB62DB30029C141 /* ClipTyper.app */;
 			productType = "com.apple.product-type.application";
 		};
+		5DD2A2062FB700000029C141 /* ClipTyperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5DD2A2072FB700000029C141 /* Build configuration list for PBXNativeTarget "ClipTyperTests" */;
+			buildPhases = (
+				5DD2A2052FB700000029C141 /* Sources */,
+				5DD2A2032FB700000029C141 /* Frameworks */,
+				5DD2A2042FB700000029C141 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5DD2A2112FB700000029C141 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5DD2A2022FB700000029C141 /* ClipTyperTests */,
+			);
+			name = ClipTyperTests;
+			packageProductDependencies = (
+			);
+			productName = ClipTyperTests;
+			productReference = 5DD2A2012FB700000029C141 /* ClipTyperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +136,10 @@
 				TargetAttributes = {
 					5DD2A1062FB62DB30029C141 = {
 						CreatedOnToolsVersion = 26.5;
+					};
+					5DD2A2062FB700000029C141 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 5DD2A1062FB62DB30029C141;
 					};
 				};
 			};
@@ -110,12 +162,20 @@
 			projectRoot = "";
 			targets = (
 				5DD2A1062FB62DB30029C141 /* ClipTyper */,
+				5DD2A2062FB700000029C141 /* ClipTyperTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		5DD2A1052FB62DB30029C141 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5DD2A2042FB700000029C141 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -132,7 +192,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5DD2A2052FB700000029C141 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5DD2A2112FB700000029C141 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5DD2A1062FB62DB30029C141 /* ClipTyper */;
+			targetProxy = 5DD2A2102FB700000029C141 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5DD2A1102FB62DB50029C141 /* Debug */ = {
@@ -319,6 +394,48 @@
 			};
 			name = Release;
 		};
+		5DD2A2082FB700000029C141 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wanjq.ClipTyperTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipTyper.app/Contents/MacOS/ClipTyper";
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Debug;
+		};
+		5DD2A2092FB700000029C141 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wanjq.ClipTyperTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipTyper.app/Contents/MacOS/ClipTyper";
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -336,6 +453,15 @@
 			buildConfigurations = (
 				5DD2A1132FB62DB50029C141 /* Debug */,
 				5DD2A1142FB62DB50029C141 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5DD2A2072FB700000029C141 /* Build configuration list for PBXNativeTarget "ClipTyperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5DD2A2082FB700000029C141 /* Debug */,
+				5DD2A2092FB700000029C141 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

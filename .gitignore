@@ -27,3 +27,6 @@ DerivedData
 # Project Workspace
 !project.xcworkspace/contents.xcworkspacedata
 project.xcworkspace/
+
+# Agent process docs
+docs/superpowers/

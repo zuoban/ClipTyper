@@ -46,6 +46,27 @@ struct AppMenuView: View {
 
             Divider()
 
+            // Status
+            HStack {
+                Text(NSLocalizedString("Status", comment: ""))
+                    .font(.subheadline)
+                Spacer()
+                Text(autoTyper.isTyping ? NSLocalizedString("Typing", comment: "") : NSLocalizedString("Ready", comment: ""))
+                    .font(.caption.monospacedDigit())
+                    .foregroundColor(autoTyper.isTyping ? .accentColor : .secondary)
+            }
+
+            if let feedbackMessage = autoTyper.feedbackMessage {
+                Text(feedbackMessage)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Divider()
+
             // Shortcut Recorder
             HStack {
                 Text(NSLocalizedString("Shortcut", comment: ""))
@@ -61,6 +82,7 @@ struct AppMenuView: View {
                 Button {
                     if !isTrusted {
                         AccessibilityHelper.requestPermission()
+                        AccessibilityHelper.openSystemSettings()
                     }
                     isTrusted = AccessibilityHelper.isTrusted
                 } label: {
@@ -85,6 +107,9 @@ struct AppMenuView: View {
         .padding(16)
         .frame(width: 280)
         .onAppear {
+            isTrusted = AccessibilityHelper.isTrusted
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             isTrusted = AccessibilityHelper.isTrusted
         }
     }

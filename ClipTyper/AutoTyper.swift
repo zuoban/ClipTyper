@@ -1,6 +1,5 @@
 import Foundation
 import Cocoa
-import Carbon
 import Combine
 
 @MainActor
@@ -10,6 +9,8 @@ class AutoTyper: ObservableObject {
     @Published var isTyping: Bool = false
     @Published var feedbackMessage: String?
     private var typingTask: Task<Void, Never>?
+    private var feedbackClearTask: Task<Void, Never>?
+    private var typingRunID: UUID?
     
     private init() {}
     
@@ -23,6 +24,8 @@ class AutoTyper: ObservableObject {
     
     func startTyping() {
         guard !isTyping else { return }
+        feedbackClearTask?.cancel()
+        feedbackMessage = nil
 
         // Check accessibility permission
         guard AccessibilityHelper.isTrusted else {
@@ -32,35 +35,38 @@ class AutoTyper: ObservableObject {
 
         // Snapshot clipboard content
         guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else {
-            Task { @MainActor in
-                self.feedbackMessage = NSLocalizedString("No text in clipboard", comment: "")
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                self.feedbackMessage = nil
-            }
+            showFeedback(NSLocalizedString("No text in clipboard", comment: ""))
             return
         }
 
         isTyping = true
+        feedbackMessage = NSLocalizedString("Typing...", comment: "")
 
         // Capture settings on MainActor
         let totalDuration = AppSettings.shared.totalDurationMs / 1000.0 // seconds
         let jitter = AppSettings.shared.typingJitterMs / 1000.0 // seconds
+        let plan = TypingPlan(text: text, totalDuration: totalDuration, jitter: jitter)
+        let runID = UUID()
+        typingRunID = runID
 
-        typingTask = Task.detached(priority: .userInitiated) {
+        typingTask = Task.detached(priority: .userInitiated) { [plan, runID] in
             // Initial delay to let the OS and target app stabilize after hotkey press
             try? await Task.sleep(nanoseconds: UInt64(Self.initialDelayMs * 1_000_000))
+            if Task.isCancelled {
+                await self.finishTyping(runID: runID, feedback: nil)
+                return
+            }
 
             let startTime = ContinuousClock.now
 
-            for (index, char) in text.enumerated() {
+            for (index, char) in plan.characters.enumerated() {
                 if Task.isCancelled { break }
 
                 await self.typeCharacter(char)
 
                 // Deadline-based timing to prevent drift
-                let progress = Double(index + 1) / Double(text.count)
-                let targetElapsed = totalDuration * progress
-                let randomJitter = Double.random(in: -jitter/2...jitter/2)
+                let targetElapsed = plan.targetElapsedTime(afterCharacterAt: index)
+                let randomJitter = Double.random(in: -plan.clampedJitter/2...plan.clampedJitter/2)
                 let duration = startTime.duration(to: ContinuousClock.now)
                 let elapsed = Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
                 let remaining = targetElapsed + randomJitter - elapsed
@@ -70,17 +76,17 @@ class AutoTyper: ObservableObject {
                 }
             }
 
-            await MainActor.run {
-                self.isTyping = false
-                self.typingTask = nil
-            }
+            let feedback = Task.isCancelled ? NSLocalizedString("Typing stopped", comment: "") : nil
+            await self.finishTyping(runID: runID, feedback: feedback)
         }
     }
 
     func stopTyping() {
         typingTask?.cancel()
+        typingTask = nil
+        typingRunID = nil
         isTyping = false
-        // typingTask is nulled by the task itself
+        showFeedback(NSLocalizedString("Typing stopped", comment: ""))
     }
 
     private func showPermissionAlert() {
@@ -93,8 +99,35 @@ class AutoTyper: ObservableObject {
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             AccessibilityHelper.requestPermission()
+            AccessibilityHelper.openSystemSettings()
         } else if response == .alertSecondButtonReturn {
             NSApp.terminate(nil)
+        }
+    }
+
+    private func finishTyping(runID: UUID, feedback: String?) {
+        guard typingRunID == runID else { return }
+
+        isTyping = false
+        typingTask = nil
+        typingRunID = nil
+
+        if let feedback {
+            showFeedback(feedback)
+        } else {
+            feedbackMessage = nil
+        }
+    }
+
+    private func showFeedback(_ message: String) {
+        feedbackClearTask?.cancel()
+        feedbackMessage = message
+
+        feedbackClearTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
+            self.feedbackMessage = nil
+            self.feedbackClearTask = nil
         }
     }
     

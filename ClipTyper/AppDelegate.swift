@@ -11,7 +11,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         registerShortcuts()
 
         // Check permissions on launch and prompt if needed
-        checkPermissions()
+        if ProcessInfo.processInfo.environment["CLIPTYPER_SKIP_PERMISSION_PROMPT"] != "1" {
+            checkPermissions()
+        }
     }
 
     private func checkPermissions() {
@@ -26,6 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let response = alert.runModal()
                 if response == .alertFirstButtonReturn {
                     AccessibilityHelper.requestPermission()
+                    AccessibilityHelper.openSystemSettings()
                 } else if response == .alertSecondButtonReturn {
                     NSApp.terminate(nil)
                 }
