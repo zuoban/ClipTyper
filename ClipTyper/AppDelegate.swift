@@ -11,9 +11,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         registerShortcuts()
 
         // Check permissions on launch and prompt if needed
-        if ProcessInfo.processInfo.environment["CLIPTYPER_SKIP_PERMISSION_PROMPT"] != "1" {
+        if Self.shouldPromptForPermissions(environment: ProcessInfo.processInfo.environment) {
             checkPermissions()
         }
+    }
+
+    static func shouldPromptForPermissions(environment: [String: String]) -> Bool {
+        guard environment["CLIPTYPER_SKIP_PERMISSION_PROMPT"] != "1" else { return false }
+        guard environment["XCTestConfigurationFilePath"] == nil else { return false }
+        return true
     }
 
     private func checkPermissions() {
