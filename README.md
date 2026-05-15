@@ -8,6 +8,10 @@
 
 ClipTyper 是一款专为 macOS 设计的原生菜单栏工具，它可以模拟用户逐字输入剪贴板中的文本。对于那些禁止直接粘贴的输入框，或者需要模拟真实打字效果的场景，ClipTyper 是您的理想选择。
 
+### 演示
+
+<video src="docs/assets/demo.mp4" controls width="720"></video>
+
 ### 核心功能
 
 *   **模拟逐字输入**：将剪贴板内容模拟为真实的键盘敲击事件。
@@ -42,6 +46,10 @@ ClipTyper 是一款专为 macOS 设计的原生菜单栏工具，它可以模拟
 ## English
 
 ClipTyper is a native macOS menu bar utility that simulates character-by-character typing of your clipboard content. It is perfect for bypassing "paste-disabled" input fields or whenever you need to simulate realistic human typing.
+
+### Demo
+
+<video src="docs/assets/demo.mp4" controls width="720"></video>
 
 ### Key Features
 
