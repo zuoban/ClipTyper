@@ -109,6 +109,43 @@ final class AutoTyperTests: XCTestCase {
         XCTAssertEqual(autoTyper.typingProgress.total, 4)
     }
 
+    func testDoubleToggleStopsInProgressTyping() async {
+        let typer = RecordingCharacterTyper(delayNanoseconds: 50_000_000)
+        let autoTyper = makeAutoTyper(clipboardText: "abcdef", characterTyper: typer)
+
+        autoTyper.toggleTyping()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        autoTyper.toggleTyping()
+
+        await autoTyper.waitForCurrentTypingTaskCompletion()
+        XCTAssertFalse(autoTyper.isTyping)
+        XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Typing stopped", comment: ""))
+    }
+
+    func testStartTypingNoOpWhileAlreadyTyping() async {
+        let typer = RecordingCharacterTyper(delayNanoseconds: 30_000_000)
+        let autoTyper = makeAutoTyper(clipboardText: "abcdef", characterTyper: typer)
+
+        autoTyper.startTyping()
+        XCTAssertTrue(autoTyper.isTyping)
+
+        autoTyper.startTyping()
+        XCTAssertTrue(autoTyper.isTyping)
+
+        autoTyper.stopTyping()
+        await autoTyper.waitForCurrentTypingTaskCompletion()
+    }
+
+    func testFeedbackMessageAutoClears() async {
+        let autoTyper = makeAutoTyper(clipboardText: nil, feedbackDurationNanoseconds: 100_000_000)
+
+        autoTyper.startTyping()
+        XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("No text in clipboard", comment: ""))
+
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertNil(autoTyper.feedbackMessage)
+    }
+
     func testWaitForCurrentTypingTaskCompletionWaitsForCancelledTypingTaskToFinish() async {
         let typer = RecordingCharacterTyper(waitsForManualFinish: true)
         let autoTyper = makeAutoTyper(clipboardText: "abcd", characterTyper: typer)
@@ -140,7 +177,8 @@ final class AutoTyperTests: XCTestCase {
         clipboardText: String?,
         permissionHandler: StubPermissionHandler? = nil,
         characterTyper: RecordingCharacterTyper? = nil,
-        maximumCharacterCount: Int = 5_000
+        maximumCharacterCount: Int = 5_000,
+        feedbackDurationNanoseconds: UInt64 = 1_000_000_000
     ) -> AutoTyper {
         let permissionHandler = permissionHandler ?? StubPermissionHandler(isTrusted: true)
         let characterTyper = characterTyper ?? RecordingCharacterTyper()
@@ -154,7 +192,7 @@ final class AutoTyperTests: XCTestCase {
             },
             initialDelayNanoseconds: 0,
             maximumCharacterCount: maximumCharacterCount,
-            feedbackDurationNanoseconds: 1_000_000_000
+            feedbackDurationNanoseconds: feedbackDurationNanoseconds
         )
     }
 }

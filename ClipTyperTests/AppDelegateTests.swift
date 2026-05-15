@@ -23,31 +23,25 @@ final class AppDelegateTests: XCTestCase {
     }
 
     @MainActor
-    func testPromptForPermissionsUsesInjectedPrompterWhenAccessibilityIsMissing() {
-        let prompter = SpyPermissionPrompter()
-        let coordinator = AccessibilityPermissionPromptCoordinator(
-            isAccessibilityTrusted: { false },
-            permissionPrompter: prompter,
-            schedulePermissionCheck: { action in action() }
-        )
+    func testPermissionHandlerIsTrustedDelegatesToInjectedClosure() {
+        let untrusted = SystemAccessibilityPermissionHandler(isAccessibilityTrusted: { false })
+        XCTAssertFalse(untrusted.isTrusted)
 
-        coordinator.promptForPermissionsIfNeeded()
-
-        XCTAssertEqual(prompter.presentCount, 1)
+        let trusted = SystemAccessibilityPermissionHandler(isAccessibilityTrusted: { true })
+        XCTAssertTrue(trusted.isTrusted)
     }
 
     @MainActor
-    func testPromptForPermissionsDoesNotPromptWhenAccessibilityIsTrusted() {
+    func testPermissionHandlerHandlePermissionRequiredCallsPrompter() {
         let prompter = SpyPermissionPrompter()
-        let coordinator = AccessibilityPermissionPromptCoordinator(
-            isAccessibilityTrusted: { true },
-            permissionPrompter: prompter,
-            schedulePermissionCheck: { action in action() }
+        let handler = SystemAccessibilityPermissionHandler(
+            isAccessibilityTrusted: { false },
+            permissionPrompter: prompter
         )
 
-        coordinator.promptForPermissionsIfNeeded()
+        handler.handlePermissionRequired()
 
-        XCTAssertEqual(prompter.presentCount, 0)
+        XCTAssertEqual(prompter.presentCount, 1)
     }
 }
 
