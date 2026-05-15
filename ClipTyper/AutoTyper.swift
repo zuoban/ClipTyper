@@ -1,12 +1,28 @@
 import Foundation
 import Combine
 
+nonisolated struct TypingProgress: Equatable {
+    let current: Int
+    let total: Int
+
+    init(current: Int = 0, total: Int = 0) {
+        self.current = max(0, current)
+        self.total = max(0, total)
+    }
+
+    var fractionCompleted: Double {
+        guard total > 0 else { return 0 }
+        return Double(min(current, total)) / Double(total)
+    }
+}
+
 @MainActor
 class AutoTyper: ObservableObject {
     static let shared = AutoTyper()
     
     @Published var isTyping: Bool = false
     @Published var feedbackMessage: String?
+    @Published var typingProgress = TypingProgress()
     private var typingTask: Task<Void, Never>?
     private var typingTaskID: UUID?
     private var feedbackClearTask: Task<Void, Never>?
@@ -63,6 +79,7 @@ class AutoTyper: ObservableObject {
         guard !isTyping else { return }
         feedbackClearTask?.cancel()
         feedbackMessage = nil
+        typingProgress = TypingProgress()
 
         // Check accessibility permission
         guard permissionHandler.isTrusted else {
@@ -86,6 +103,7 @@ class AutoTyper: ObservableObject {
 
         isTyping = true
         feedbackMessage = NSLocalizedString("Typing...", comment: "")
+        typingProgress = TypingProgress(current: 0, total: plan.characterCount)
 
         let runID = UUID()
         typingRunID = runID
@@ -105,6 +123,7 @@ class AutoTyper: ObservableObject {
                 if Task.isCancelled { break }
 
                 await characterTyper.typeCharacter(char)
+                await self.updateTypingProgress(runID: runID, current: index + 1, total: plan.characterCount)
 
                 // Deadline-based timing to prevent drift
                 let targetElapsed = plan.targetElapsedTime(afterCharacterAt: index)
@@ -140,6 +159,11 @@ class AutoTyper: ObservableObject {
             typingTask = nil
             typingTaskID = nil
         }
+    }
+
+    private func updateTypingProgress(runID: UUID, current: Int, total: Int) {
+        guard typingRunID == runID else { return }
+        typingProgress = TypingProgress(current: current, total: total)
     }
 
     private func finishTyping(runID: UUID, feedback: String?) {

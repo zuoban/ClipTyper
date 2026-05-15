@@ -38,6 +38,21 @@ final class AutoTyperTests: XCTestCase {
         XCTAssertEqual(typedCharacters, ["a", "b"])
     }
 
+    func testStartTypingTracksTypingProgress() async {
+        let typer = RecordingCharacterTyper()
+        let autoTyper = makeAutoTyper(clipboardText: "ab", characterTyper: typer)
+
+        autoTyper.startTyping()
+
+        XCTAssertEqual(autoTyper.typingProgress.current, 0)
+        XCTAssertEqual(autoTyper.typingProgress.total, 2)
+
+        await autoTyper.waitForCurrentTypingTaskCompletion()
+
+        XCTAssertEqual(autoTyper.typingProgress.current, 2)
+        XCTAssertEqual(autoTyper.typingProgress.total, 2)
+    }
+
     func testStartTypingRejectsTextThatExceedsMaximumLength() async {
         let typer = RecordingCharacterTyper()
         let autoTyper = makeAutoTyper(
@@ -68,6 +83,23 @@ final class AutoTyperTests: XCTestCase {
         XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Typing stopped", comment: ""))
         let typedCountAfterWaiting = await typer.typedCharacters.count
         XCTAssertEqual(typedCountAfterWaiting, typedCountAfterStop)
+    }
+
+    func testStopTypingKeepsProgressAtStoppedCharacterCount() async {
+        let typer = RecordingCharacterTyper(waitsForManualFinish: true)
+        let autoTyper = makeAutoTyper(clipboardText: "abcd", characterTyper: typer)
+
+        autoTyper.startTyping()
+        await typer.waitUntilTypedCharacterCount(isAtLeast: 1)
+        await typer.finishCurrentCharacterTyping()
+        await typer.waitUntilTypedCharacterCount(isAtLeast: 2)
+        autoTyper.stopTyping()
+
+        await typer.finishCurrentCharacterTyping()
+        await autoTyper.waitForCurrentTypingTaskCompletion()
+
+        XCTAssertEqual(autoTyper.typingProgress.current, 1)
+        XCTAssertEqual(autoTyper.typingProgress.total, 4)
     }
 
     func testWaitForCurrentTypingTaskCompletionWaitsForCancelledTypingTaskToFinish() async {

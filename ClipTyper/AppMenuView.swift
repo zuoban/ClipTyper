@@ -56,6 +56,21 @@ struct AppMenuView: View {
                     .foregroundColor(autoTyper.isTyping ? .accentColor : .secondary)
             }
 
+            if autoTyper.typingProgress.total > 0 {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(NSLocalizedString("Progress", comment: ""))
+                            .font(.subheadline)
+                        Spacer()
+                        Text("\(autoTyper.typingProgress.current) / \(autoTyper.typingProgress.total)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundColor(.secondary)
+                    }
+                    ProgressView(value: autoTyper.typingProgress.fractionCompleted)
+                        .controlSize(.small)
+                }
+            }
+
             if let feedbackMessage = autoTyper.feedbackMessage {
                 Text(feedbackMessage)
                     .font(.caption)
