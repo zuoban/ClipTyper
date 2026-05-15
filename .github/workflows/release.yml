@@ -50,14 +50,9 @@ jobs:
           mkdir -p build
           cp -R .derivedData/Build/Products/Release/ClipTyper.app build/
 
-      - name: Verify Build Output
+      - name: Package for Upload
         run: |
-          if [ ! -d "build/ClipTyper.app" ]; then
-            echo "ERROR: build/ClipTyper.app not found"
-            ls -la build/ || true
-            exit 1
-          fi
-          echo "Build output verified: build/ClipTyper.app"
+          cd build && zip -r ../ClipTyper.zip ClipTyper.app
 
       - name: Run Tests
         run: |
@@ -71,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ClipTyper-app
-          path: build/ClipTyper.app
+          path: ClipTyper.zip
 
   release:
     name: Package and Release
@@ -90,16 +85,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ClipTyper-app
-          path: build
+          path: .
 
-      - name: Verify Downloaded Artifact
+      - name: Extract App Bundle
         run: |
+          mkdir -p build
+          unzip ClipTyper.zip -d build/
           if [ ! -d "build/ClipTyper.app" ]; then
-            echo "ERROR: build/ClipTyper.app not found after download"
+            echo "ERROR: build/ClipTyper.app not found after extraction"
             ls -la build/ || true
             exit 1
           fi
-          echo "Artifact verified: build/ClipTyper.app"
+          echo "App bundle extracted: build/ClipTyper.app"
 
       - name: Import Developer ID Certificate
         if: ${{ env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && env.DEVELOPER_ID_CERTIFICATE_PASSWORD != '' }}
