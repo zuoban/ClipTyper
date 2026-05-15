@@ -8,6 +8,7 @@ class AutoTyper: ObservableObject {
     @Published var isTyping: Bool = false
     @Published var feedbackMessage: String?
     private var typingTask: Task<Void, Never>?
+    private var typingTaskID: UUID?
     private var feedbackClearTask: Task<Void, Never>?
     private var typingRunID: UUID?
     private let clipboardProvider: ClipboardTextProviding
@@ -88,6 +89,7 @@ class AutoTyper: ObservableObject {
 
         let runID = UUID()
         typingRunID = runID
+        typingTaskID = runID
 
         typingTask = Task.detached(priority: .userInitiated) { [plan, runID, initialDelayNanoseconds, characterTyper] in
             // Initial delay to let the OS and target app stabilize after hotkey press
@@ -123,14 +125,21 @@ class AutoTyper: ObservableObject {
 
     func stopTyping() {
         typingTask?.cancel()
-        typingTask = nil
         typingRunID = nil
         isTyping = false
         showFeedback(NSLocalizedString("Typing stopped", comment: ""))
     }
 
     func waitForCurrentTypingTaskCompletion() async {
-        await typingTask?.value
+        let task = typingTask
+        let taskID = typingTaskID
+
+        await task?.value
+
+        if typingTaskID == taskID {
+            typingTask = nil
+            typingTaskID = nil
+        }
     }
 
     private func finishTyping(runID: UUID, feedback: String?) {
@@ -138,6 +147,7 @@ class AutoTyper: ObservableObject {
 
         isTyping = false
         typingTask = nil
+        typingTaskID = nil
         typingRunID = nil
 
         if let feedback {

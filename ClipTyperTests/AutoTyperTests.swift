@@ -70,6 +70,33 @@ final class AutoTyperTests: XCTestCase {
         XCTAssertEqual(typedCountAfterWaiting, typedCountAfterStop)
     }
 
+    func testWaitForCurrentTypingTaskCompletionWaitsForCancelledTypingTaskToFinish() async {
+        let typer = RecordingCharacterTyper(waitsForManualFinish: true)
+        let autoTyper = makeAutoTyper(clipboardText: "abcd", characterTyper: typer)
+        let waitCompletion = WaitCompletionProbe()
+
+        autoTyper.startTyping()
+        await typer.waitUntilTypedCharacterCount(isAtLeast: 1)
+        autoTyper.stopTyping()
+
+        let isTypingCharacterAfterStop = await typer.isTypingCharacter
+        XCTAssertTrue(isTypingCharacterAfterStop)
+
+        let waitTask = Task { @MainActor in
+            await autoTyper.waitForCurrentTypingTaskCompletion()
+            await waitCompletion.markCompleted()
+        }
+        try? await Task.sleep(nanoseconds: 20_000_000)
+
+        let didCompleteBeforeCharacterTypingFinished = await waitCompletion.isCompleted
+        XCTAssertFalse(didCompleteBeforeCharacterTypingFinished)
+
+        await typer.finishCurrentCharacterTyping()
+        await waitTask.value
+        let isTypingCharacterAfterWaiting = await typer.isTypingCharacter
+        XCTAssertFalse(isTypingCharacterAfterWaiting)
+    }
+
     private func makeAutoTyper(
         clipboardText: String?,
         permissionHandler: StubPermissionHandler? = nil,
@@ -122,20 +149,36 @@ private actor RecordingCharacterTyper: CharacterTyping {
     private var storage: [Character] = []
     private var countWaiters: [(minimumCount: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private let delayNanoseconds: UInt64
+    private let waitsForManualFinish: Bool
+    private var manualFinishContinuation: CheckedContinuation<Void, Never>?
 
     var typedCharacters: [Character] {
         storage
     }
 
-    init(delayNanoseconds: UInt64 = 0) {
+    var isTypingCharacter: Bool {
+        activeTypingCount > 0
+    }
+
+    private var activeTypingCount = 0
+
+    init(delayNanoseconds: UInt64 = 0, waitsForManualFinish: Bool = false) {
         self.delayNanoseconds = delayNanoseconds
+        self.waitsForManualFinish = waitsForManualFinish
     }
 
     func typeCharacter(_ char: Character) async {
+        activeTypingCount += 1
+        defer { activeTypingCount -= 1 }
+
         storage.append(char)
         resumeSatisfiedCountWaiters()
 
-        if delayNanoseconds > 0 {
+        if waitsForManualFinish {
+            await withCheckedContinuation { continuation in
+                manualFinishContinuation = continuation
+            }
+        } else if delayNanoseconds > 0 {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
         }
     }
@@ -146,6 +189,11 @@ private actor RecordingCharacterTyper: CharacterTyping {
         await withCheckedContinuation { continuation in
             countWaiters.append((minimumCount, continuation))
         }
+    }
+
+    func finishCurrentCharacterTyping() {
+        manualFinishContinuation?.resume()
+        manualFinishContinuation = nil
     }
 
     private func resumeSatisfiedCountWaiters() {
@@ -160,5 +208,17 @@ private actor RecordingCharacterTyper: CharacterTyping {
         }
 
         countWaiters = remainingWaiters
+    }
+}
+
+private actor WaitCompletionProbe {
+    private var completed = false
+
+    var isCompleted: Bool {
+        completed
+    }
+
+    func markCompleted() {
+        completed = true
     }
 }
