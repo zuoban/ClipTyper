@@ -5,55 +5,55 @@ final class UpdateCheckerTests: XCTestCase {
     // MARK: - Version Comparison
 
     @MainActor
-    func testCompareVersionsSame() {
+    func testCompareVersionsSame() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.1"), .orderedSame)
     }
 
     @MainActor
-    func testCompareVersionsSameNoVPrefix() {
+    func testCompareVersionsSameNoVPrefix() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "1.3.1"), .orderedSame)
     }
 
     @MainActor
-    func testCompareVersionsNewerPatch() {
+    func testCompareVersionsNewerPatch() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.2"), .orderedAscending)
     }
 
     @MainActor
-    func testCompareVersionsNewerMinor() {
+    func testCompareVersionsNewerMinor() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.4"), .orderedAscending)
     }
 
     @MainActor
-    func testCompareVersionsNewerMajor() {
+    func testCompareVersionsNewerMajor() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v2.0"), .orderedAscending)
     }
 
     @MainActor
-    func testCompareVersionsOlder() {
+    func testCompareVersionsOlder() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.5", latest: "v1.3.1"), .orderedDescending)
     }
 
     @MainActor
-    func testCompareVersionsShortVsLong() {
+    func testCompareVersionsShortVsLong() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.1.0"), .orderedSame)
     }
 
     @MainActor
-    func testCompareVersionsZeroComparison() {
+    func testCompareVersionsZeroComparison() async {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "0.0", latest: "v0.0.0"), .orderedSame)
     }
 
     @MainActor
-    func testCompareVersionsNonNumericComponentsGracefullyDegraded() {
+    func testCompareVersionsNonNumericComponentsGracefullyDegraded() async {
         let updater = makeUpdateChecker()
         // 1.3.1 vs 1.0 (from 1.4-beta) -> 1.3.1 > 1.0 -> descending
         let result = updater.compareVersions(current: "1.3.1", latest: "v1.4-beta")
@@ -95,7 +95,7 @@ final class UpdateCheckerTests: XCTestCase {
     // MARK: - Last Check Date
 
     @MainActor
-    func testLastCheckDateNilWhenNeverChecked() {
+    func testLastCheckDateNilWhenNeverChecked() async {
         let defaults = UserDefaults()
         let session = URLSession(configuration: .ephemeral)
         let updater = UpdateChecker(
