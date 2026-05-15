@@ -11,24 +11,11 @@ nonisolated struct TypingConfiguration {
     }
 
     init(totalDurationMilliseconds: Double, typingJitterMilliseconds: Double) {
-        let totalDurationMs = Self.sanitized(
-            totalDurationMilliseconds,
-            fallback: 1_000,
-            range: AppConstants.totalDurationRange
-        )
-        let jitterMs = Self.sanitized(
-            typingJitterMilliseconds,
-            fallback: 20,
-            range: AppConstants.jitterRange
-        )
+        let totalDurationMs = AppConstants.sanitizedTotalDurationMilliseconds(totalDurationMilliseconds)
+        let jitterMs = AppConstants.sanitizedTypingJitterMilliseconds(typingJitterMilliseconds)
 
         self.totalDuration = totalDurationMs / 1_000
         self.jitter = jitterMs / 1_000
-    }
-
-    private static func sanitized(_ value: Double, fallback: Double, range: ClosedRange<Double>) -> Double {
-        let finiteValue = value.isFinite ? value : fallback
-        return min(max(finiteValue, range.lowerBound), range.upperBound)
     }
 }
 
