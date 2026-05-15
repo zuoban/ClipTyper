@@ -31,11 +31,17 @@ ClipTyper 是一款专为 macOS 设计的原生菜单栏工具，它可以模拟
 4.  **触发输入**：复制一段文字，将光标置于目标输入框，按下快捷键（默认 `⌘⇧V`）。
 5.  **中止输入**：在输入过程中再次按下快捷键即可停止。
 
+### 隐私与权限
+
+*   ClipTyper 只在您触发快捷键时读取当前剪贴板文本。
+*   剪贴板内容仅用于本地模拟输入，不会上传、存储或写入日志。
+*   辅助功能权限仅用于向当前系统会话发送键盘事件。
+
 ---
 
 ## English
 
-ClipTyper is a native macOS menu bar utility that simulates character-by-character typing of your clipboard content. It is perfect for bypasssing "paste-disabled" input fields or whenever you need to simulate realistic human typing.
+ClipTyper is a native macOS menu bar utility that simulates character-by-character typing of your clipboard content. It is perfect for bypassing "paste-disabled" input fields or whenever you need to simulate realistic human typing.
 
 ### Key Features
 
@@ -59,6 +65,12 @@ ClipTyper is a native macOS menu bar utility that simulates character-by-charact
 3.  **Configure**: Click the menu bar icon to adjust "Total Duration" and "Jitter".
 4.  **Trigger**: Copy some text, click your target input field, and press the hotkey (`⌘⇧V`).
 5.  **Stop**: Press the hotkey again during typing to cancel the operation.
+
+### Privacy & Permissions
+
+*   ClipTyper reads clipboard text only when you trigger the hotkey.
+*   Clipboard content is used locally for simulated typing only. It is not uploaded, stored, or written to logs.
+*   Accessibility permission is used only to send keyboard events in the current macOS session.
 
 ### Development
 
