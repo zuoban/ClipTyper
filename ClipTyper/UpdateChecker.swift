@@ -45,50 +45,71 @@ final class UpdateChecker {
     private let lastCheckKey = "lastUpdateCheckTimestamp"
 
     var lastCheckDate: Date? {
-        let timestamp = UserDefaults.standard.double(forKey: lastCheckKey)
+        let timestamp = defaults.double(forKey: lastCheckKey)
         return timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : nil
     }
 
     private let session: URLSession
+    private let defaults: UserDefaults
     private let currentVersionProvider: @MainActor () -> String?
     private let releaseURL: URL
+    private let alertHandler: @MainActor (UpdateAlert) -> Void
+
+    enum UpdateAlert {
+        case upToDate(currentVersion: String)
+        case updateAvailable(currentVersion: String, release: GitHubRelease)
+        case error(message: String)
+    }
 
     init(
         session: URLSession = .shared,
+        defaults: UserDefaults = .standard,
         currentVersionProvider: (@MainActor () -> String?)? = nil,
-        releaseURL: URL = URL(string: "https://api.github.com/repos/zuoban/ClipTyper/releases/latest")!
+        releaseURL: URL = URL(string: "https://api.github.com/repos/zuoban/ClipTyper/releases/latest")!,
+        alertHandler: (@MainActor (UpdateAlert) -> Void)? = nil
     ) {
         self.session = session
+        self.defaults = defaults
         self.currentVersionProvider = currentVersionProvider ?? {
             Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         }
         self.releaseURL = releaseURL
+        self.alertHandler = alertHandler ?? { alert in
+            switch alert {
+            case .upToDate(let version):
+                UpdateChecker.showUpToDateAlert(currentVersion: version)
+            case .updateAvailable(let version, let release):
+                UpdateChecker.showUpdateAvailableAlert(currentVersion: version, release: release)
+            case .error(let message):
+                UpdateChecker.showErrorAlert(message: message)
+            }
+        }
     }
 
     func checkForUpdates() async {
-        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastCheckKey)
+        defaults.set(Date().timeIntervalSince1970, forKey: lastCheckKey)
 
         guard let currentVersion = currentVersionProvider() else {
-            showErrorAlert(message: NSLocalizedString("Unable to determine current app version.", comment: ""))
+            alertHandler(.error(message: NSLocalizedString("Unable to determine current app version.", comment: "")))
             return
         }
 
         do {
             guard let release = try await fetchLatestRelease() else {
-                showUpToDateAlert(currentVersion: currentVersion)
+                alertHandler(.upToDate(currentVersion: currentVersion))
                 return
             }
 
             switch compareVersions(current: currentVersion, latest: release.tagName) {
             case .orderedAscending:
-                showUpdateAvailableAlert(currentVersion: currentVersion, release: release)
+                alertHandler(.updateAvailable(currentVersion: currentVersion, release: release))
             default:
-                showUpToDateAlert(currentVersion: currentVersion)
+                alertHandler(.upToDate(currentVersion: currentVersion))
             }
         } catch let error as UpdateCheckError {
-            showErrorAlert(message: error.localizedDescription)
+            alertHandler(.error(message: error.localizedDescription))
         } catch {
-            showErrorAlert(message: error.localizedDescription)
+            alertHandler(.error(message: error.localizedDescription))
         }
     }
 
@@ -154,7 +175,7 @@ final class UpdateChecker {
         }
     }
 
-    private func showUpToDateAlert(currentVersion: String) {
+    private static func showUpToDateAlert(currentVersion: String) {
         let alert = NSAlert()
         alert.messageText = NSLocalizedString("You're up to date!", comment: "")
         alert.informativeText = String.localizedStringWithFormat(
@@ -166,7 +187,7 @@ final class UpdateChecker {
         alert.runModal()
     }
 
-    private func showUpdateAvailableAlert(currentVersion: String, release: GitHubRelease) {
+    private static func showUpdateAvailableAlert(currentVersion: String, release: GitHubRelease) {
         let alert = NSAlert()
         alert.messageText = NSLocalizedString("New Version Available", comment: "")
         alert.informativeText = String.localizedStringWithFormat(
@@ -183,7 +204,7 @@ final class UpdateChecker {
         }
     }
 
-    private func showErrorAlert(message: String) {
+    private static func showErrorAlert(message: String) {
         let alert = NSAlert()
         alert.messageText = NSLocalizedString("Unable to Check for Updates", comment: "")
         alert.informativeText = NSLocalizedString("An error occurred while checking for updates.", comment: "")

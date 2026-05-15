@@ -84,18 +84,28 @@ final class UpdateCheckerTests: XCTestCase {
     // MARK: - Last Check Date
 
     func testLastCheckDateNilWhenNeverChecked() {
+        let defaults = UserDefaults(suiteName: "UpdateCheckerTests")!
+        defaults.removePersistentDomain(forName: "UpdateCheckerTests")
+        
         let updater = UpdateChecker(
             session: .shared,
-            currentVersionProvider: { "1.0" }
+            defaults: defaults,
+            currentVersionProvider: { "1.0" },
+            alertHandler: { _ in }
         )
         XCTAssertNil(updater.lastCheckDate)
     }
 
     func testCheckForUpdatesUpdatesTimestamp() async {
+        let defaults = UserDefaults(suiteName: "UpdateCheckerTests")!
+        defaults.removePersistentDomain(forName: "UpdateCheckerTests")
+        
         let session = makeSession(statusCode: 404, data: Data())
         let updater = UpdateChecker(
             session: session,
-            currentVersionProvider: { "1.0" }
+            defaults: defaults,
+            currentVersionProvider: { "1.0" },
+            alertHandler: { _ in }
         )
 
         await updater.checkForUpdates()
@@ -199,11 +209,14 @@ final class UpdateCheckerTests: XCTestCase {
 
     private func makeUpdateChecker(
         session: URLSession = .shared,
+        defaults: UserDefaults = .standard,
         currentVersion: String = "1.0"
     ) -> UpdateChecker {
         UpdateChecker(
             session: session,
-            currentVersionProvider: { currentVersion }
+            defaults: defaults,
+            currentVersionProvider: { currentVersion },
+            alertHandler: { _ in }
         )
     }
 
