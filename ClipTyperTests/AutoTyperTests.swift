@@ -22,6 +22,7 @@ final class AutoTyperTests: XCTestCase {
         autoTyper.startTyping()
 
         XCTAssertFalse(autoTyper.isTyping)
+        XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Accessibility Permission Required", comment: ""))
         XCTAssertEqual(permissions.permissionRequestCount, 1)
     }
 

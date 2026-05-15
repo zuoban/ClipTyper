@@ -83,6 +83,7 @@ class AutoTyper: ObservableObject {
 
         // Check accessibility permission
         guard permissionHandler.isTrusted else {
+            showFeedback(NSLocalizedString("Accessibility Permission Required", comment: ""))
             permissionHandler.handlePermissionRequired()
             return
         }
