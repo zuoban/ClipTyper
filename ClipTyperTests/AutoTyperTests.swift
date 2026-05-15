@@ -59,10 +59,10 @@ final class AutoTyperTests: XCTestCase {
         let autoTyper = makeAutoTyper(clipboardText: "abcd", characterTyper: typer)
 
         autoTyper.startTyping()
-        try? await Task.sleep(nanoseconds: 5_000_000)
+        await typer.waitUntilTypedCharacterCount(isAtLeast: 1)
         autoTyper.stopTyping()
         let typedCountAfterStop = await typer.typedCharacters.count
-        try? await Task.sleep(nanoseconds: 80_000_000)
+        await autoTyper.waitForCurrentTypingTaskCompletion()
 
         XCTAssertFalse(autoTyper.isTyping)
         XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Typing stopped", comment: ""))
@@ -120,6 +120,7 @@ private final class StubPermissionHandler: AccessibilityPermissionHandling {
 
 private actor RecordingCharacterTyper: CharacterTyping {
     private var storage: [Character] = []
+    private var countWaiters: [(minimumCount: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private let delayNanoseconds: UInt64
 
     var typedCharacters: [Character] {
@@ -132,9 +133,32 @@ private actor RecordingCharacterTyper: CharacterTyping {
 
     func typeCharacter(_ char: Character) async {
         storage.append(char)
+        resumeSatisfiedCountWaiters()
 
         if delayNanoseconds > 0 {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
         }
+    }
+
+    func waitUntilTypedCharacterCount(isAtLeast minimumCount: Int) async {
+        guard storage.count < minimumCount else { return }
+
+        await withCheckedContinuation { continuation in
+            countWaiters.append((minimumCount, continuation))
+        }
+    }
+
+    private func resumeSatisfiedCountWaiters() {
+        var remainingWaiters: [(minimumCount: Int, continuation: CheckedContinuation<Void, Never>)] = []
+
+        for waiter in countWaiters {
+            if storage.count >= waiter.minimumCount {
+                waiter.continuation.resume()
+            } else {
+                remainingWaiters.append(waiter)
+            }
+        }
+
+        countWaiters = remainingWaiters
     }
 }
