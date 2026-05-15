@@ -24,7 +24,6 @@ class AutoTyper: ObservableObject {
     @Published var feedbackMessage: String?
     @Published var typingProgress = TypingProgress()
     private var typingTask: Task<Void, Never>?
-    private var typingTaskID: UUID?
     private var feedbackClearTask: Task<Void, Never>?
     private var typingRunID: UUID?
     private let clipboardProvider: ClipboardTextProviding
@@ -81,20 +80,29 @@ class AutoTyper: ObservableObject {
         feedbackMessage = nil
         typingProgress = TypingProgress()
 
-        // Check accessibility permission
+        guard let plan = prepareTypingPlan() else { return }
+
+        isTyping = true
+        feedbackMessage = NSLocalizedString("Typing...", comment: "")
+        typingProgress = TypingProgress(current: 0, total: plan.characterCount)
+
+        let runID = UUID()
+        typingRunID = runID
+        typingTask = makeTypingTask(plan: plan, runID: runID)
+    }
+
+    private func prepareTypingPlan() -> TypingPlan? {
         guard permissionHandler.isTrusted else {
             showFeedback(NSLocalizedString("Accessibility Permission Required", comment: ""))
             permissionHandler.handlePermissionRequired()
-            return
+            return nil
         }
 
-        // Snapshot clipboard content
         guard let text = clipboardProvider.currentText(), !text.isEmpty else {
             showFeedback(NSLocalizedString("No text in clipboard", comment: ""))
-            return
+            return nil
         }
 
-        // Capture settings on MainActor
         let configuration = settingsProvider()
         let plan = TypingPlan(text: text, totalDuration: configuration.totalDuration, jitter: configuration.jitter)
         guard plan.characterCount <= maximumCharacterCount else {
@@ -104,19 +112,14 @@ class AutoTyper: ObservableObject {
                     maximumCharacterCount
                 )
             )
-            return
+            return nil
         }
 
-        isTyping = true
-        feedbackMessage = NSLocalizedString("Typing...", comment: "")
-        typingProgress = TypingProgress(current: 0, total: plan.characterCount)
+        return plan
+    }
 
-        let runID = UUID()
-        typingRunID = runID
-        typingTaskID = runID
-
-        typingTask = Task.detached(priority: .userInitiated) { [plan, runID, initialDelayNanoseconds, characterTyper] in
-            // Initial delay to let the OS and target app stabilize after hotkey press
+    private func makeTypingTask(plan: TypingPlan, runID: UUID) -> Task<Void, Never> {
+        Task.detached(priority: .userInitiated) { [plan, runID, initialDelayNanoseconds, characterTyper] in
             try? await Task.sleep(nanoseconds: initialDelayNanoseconds)
             if Task.isCancelled {
                 await self.finishTyping(runID: runID, feedback: nil)
@@ -125,18 +128,29 @@ class AutoTyper: ObservableObject {
 
             let startTime = ContinuousClock.now
 
+            var consecutiveFailures = 0
             for (index, char) in plan.characters.enumerated() {
                 if Task.isCancelled { break }
 
-                await characterTyper.typeCharacter(char)
+                let success = await characterTyper.typeCharacter(char)
+                if !success {
+                    consecutiveFailures += 1
+                    if consecutiveFailures >= 3 {
+                        await self.finishTyping(runID: runID, feedback: NSLocalizedString("Keystroke injection failed", comment: ""))
+                        return
+                    }
+                    continue
+                }
+                consecutiveFailures = 0
+
                 await self.updateTypingProgress(runID: runID, current: index + 1, total: plan.characterCount)
 
-                // Deadline-based timing to prevent drift
                 let targetElapsed = plan.targetElapsedTime(afterCharacterAt: index)
                 let randomJitter = Double.random(in: -plan.clampedJitter/2...plan.clampedJitter/2)
                 let duration = startTime.duration(to: ContinuousClock.now)
                 let elapsed = Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
-                let remaining = targetElapsed + randomJitter - elapsed
+                let drift = elapsed - targetElapsed
+                let remaining = targetElapsed + randomJitter - elapsed - drift * 0.3
 
                 if remaining > 0.001 {
                     try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
@@ -157,13 +171,13 @@ class AutoTyper: ObservableObject {
 
     func waitForCurrentTypingTaskCompletion() async {
         let task = typingTask
-        let taskID = typingTaskID
+        let runID = typingRunID
 
         await task?.value
 
-        if typingTaskID == taskID {
+        if typingRunID == runID {
             typingTask = nil
-            typingTaskID = nil
+            typingRunID = nil
         }
     }
 
@@ -177,7 +191,6 @@ class AutoTyper: ObservableObject {
 
         isTyping = false
         typingTask = nil
-        typingTaskID = nil
         typingRunID = nil
 
         if let feedback {

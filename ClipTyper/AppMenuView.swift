@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import KeyboardShortcuts
 
@@ -5,6 +6,7 @@ struct AppMenuView: View {
     @ObservedObject private var autoTyper = AutoTyper.shared
     @ObservedObject private var settings = AppSettings.shared
     @State private var isTrusted: Bool = AccessibilityHelper.isTrusted
+    private let permissionPollTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 16) {
@@ -125,6 +127,9 @@ struct AppMenuView: View {
             isTrusted = AccessibilityHelper.isTrusted
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            isTrusted = AccessibilityHelper.isTrusted
+        }
+        .onReceive(permissionPollTimer) { _ in
             isTrusted = AccessibilityHelper.isTrusted
         }
     }

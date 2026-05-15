@@ -206,7 +206,7 @@ private actor RecordingCharacterTyper: CharacterTyping {
         self.waitsForManualFinish = waitsForManualFinish
     }
 
-    func typeCharacter(_ char: Character) async {
+    func typeCharacter(_ char: Character) async -> Bool {
         activeTypingCount += 1
         defer { activeTypingCount -= 1 }
 
@@ -220,6 +220,7 @@ private actor RecordingCharacterTyper: CharacterTyping {
         } else if delayNanoseconds > 0 {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
         }
+        return true
     }
 
     func waitUntilTypedCharacterCount(isAtLeast minimumCount: Int) async {
