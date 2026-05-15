@@ -1,5 +1,6 @@
-import Foundation
+import AppKit
 import Combine
+import Foundation
 
 nonisolated struct TypingProgress: Equatable {
     let current: Int
@@ -26,6 +27,8 @@ class AutoTyper: ObservableObject {
     private var typingTask: Task<Void, Never>?
     private var feedbackClearTask: Task<Void, Never>?
     private var typingRunID: UUID?
+    private var focusObserver: (any NSObjectProtocol)?
+    private var targetApplicationPID: pid_t?
     private let clipboardProvider: ClipboardTextProviding
     private let permissionHandler: AccessibilityPermissionHandling
     private let characterTyper: CharacterTyping
@@ -86,6 +89,9 @@ class AutoTyper: ObservableObject {
         feedbackMessage = NSLocalizedString("Typing...", comment: "")
         typingProgress = TypingProgress(current: 0, total: plan.characterCount)
 
+        targetApplicationPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        startFocusObserver()
+
         let runID = UUID()
         typingRunID = runID
         typingTask = makeTypingTask(plan: plan, runID: runID)
@@ -119,7 +125,7 @@ class AutoTyper: ObservableObject {
     }
 
     private func makeTypingTask(plan: TypingPlan, runID: UUID) -> Task<Void, Never> {
-        Task.detached(priority: .userInitiated) { [plan, runID, initialDelayNanoseconds, characterTyper] in
+        return Task.detached(priority: .userInitiated) { [plan, runID, initialDelayNanoseconds, characterTyper, targetPID = targetApplicationPID] in
             try? await Task.sleep(nanoseconds: initialDelayNanoseconds)
             if Task.isCancelled {
                 await self.finishTyping(runID: runID, feedback: nil)
@@ -132,7 +138,7 @@ class AutoTyper: ObservableObject {
             for (index, char) in plan.characters.enumerated() {
                 if Task.isCancelled { break }
 
-                let success = await characterTyper.typeCharacter(char)
+                let success = await characterTyper.typeCharacter(char, targetPID: targetPID)
                 if !success {
                     consecutiveFailures += 1
                     if consecutiveFailures >= 3 {
@@ -165,6 +171,7 @@ class AutoTyper: ObservableObject {
     func stopTyping() {
         typingTask?.cancel()
         typingRunID = nil
+        stopFocusObserver()
         isTyping = false
         showFeedback(NSLocalizedString("Typing stopped", comment: ""))
     }
@@ -192,6 +199,7 @@ class AutoTyper: ObservableObject {
         isTyping = false
         typingTask = nil
         typingRunID = nil
+        stopFocusObserver()
 
         if let feedback {
             showFeedback(feedback)
@@ -210,5 +218,32 @@ class AutoTyper: ObservableObject {
             self.feedbackMessage = nil
             self.feedbackClearTask = nil
         }
+    }
+
+    private func startFocusObserver() {
+        stopFocusObserver()
+        let targetPID = targetApplicationPID
+        focusObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                guard self.isTyping else { return }
+                let activatedApp = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                if activatedApp?.processIdentifier != targetPID {
+                    self.stopTyping()
+                }
+            }
+        }
+    }
+
+    private func stopFocusObserver() {
+        if let observer = focusObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            focusObserver = nil
+        }
+        targetApplicationPID = nil
     }
 }
