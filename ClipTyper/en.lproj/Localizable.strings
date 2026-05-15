@@ -10,7 +10,7 @@
 "Accessibility Permission Required" = "Accessibility Permission Required";
 "ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings." = "ClipTyper needs accessibility permissions to simulate keystrokes. Please allow it in System Settings.";
 "ClipTyper" = "ClipTyper";
-"Clipboard text is too long" = "Clipboard text is too long";
+"Clipboard text is too long (%d character limit)" = "Clipboard text is too long (%d character limit)";
 "No text in clipboard" = "No text in clipboard";
 "Ready" = "Ready";
 "Status" = "Status";

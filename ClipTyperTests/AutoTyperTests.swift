@@ -64,7 +64,13 @@ final class AutoTyperTests: XCTestCase {
         autoTyper.startTyping()
 
         XCTAssertFalse(autoTyper.isTyping)
-        XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Clipboard text is too long", comment: ""))
+        XCTAssertEqual(
+            autoTyper.feedbackMessage,
+            String.localizedStringWithFormat(
+                NSLocalizedString("Clipboard text is too long (%d character limit)", comment: ""),
+                3
+            )
+        )
         let typedCharacters = await typer.typedCharacters
         XCTAssertTrue(typedCharacters.isEmpty)
     }

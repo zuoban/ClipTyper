@@ -97,7 +97,12 @@ class AutoTyper: ObservableObject {
         let configuration = settingsProvider()
         let plan = TypingPlan(text: text, totalDuration: configuration.totalDuration, jitter: configuration.jitter)
         guard plan.characterCount <= maximumCharacterCount else {
-            showFeedback(NSLocalizedString("Clipboard text is too long", comment: ""))
+            showFeedback(
+                String.localizedStringWithFormat(
+                    NSLocalizedString("Clipboard text is too long (%d character limit)", comment: ""),
+                    maximumCharacterCount
+                )
+            )
             return
         }
 
