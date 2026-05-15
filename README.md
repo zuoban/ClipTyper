@@ -98,7 +98,7 @@ open ClipTyper.xcodeproj
 
 ### Acknowledgments
 
-Thanks to the Linux.do community for testing, feedback, and discussion.
+Thanks to the [Linux.do](https://linux.do/) community for testing, feedback, and discussion.
 
 ### License
 
