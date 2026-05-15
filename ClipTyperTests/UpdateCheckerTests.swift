@@ -7,27 +7,27 @@ final class UpdateCheckerTests: XCTestCase {
 
     func testCompareVersionsSame() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.2", latest: "v1.2"), .orderedSame)
+        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.3"), .orderedSame)
     }
 
     func testCompareVersionsSameNoVPrefix() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.2", latest: "1.2"), .orderedSame)
+        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "1.3"), .orderedSame)
     }
 
     func testCompareVersionsNewerPatch() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.2", latest: "v1.2.1"), .orderedAscending)
+        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.3.1"), .orderedAscending)
     }
 
     func testCompareVersionsNewerMinor() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.2", latest: "v1.3"), .orderedAscending)
+        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.4"), .orderedAscending)
     }
 
     func testCompareVersionsNewerMajor() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.2", latest: "v2.0"), .orderedAscending)
+        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v2.0"), .orderedAscending)
     }
 
     func testCompareVersionsOlder() {
@@ -37,7 +37,7 @@ final class UpdateCheckerTests: XCTestCase {
 
     func testCompareVersionsShortVsLong() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.2", latest: "v1.2.0.0"), .orderedSame)
+        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.3.0.0"), .orderedSame)
     }
 
     func testCompareVersionsZeroComparison() {
@@ -47,7 +47,8 @@ final class UpdateCheckerTests: XCTestCase {
 
     func testCompareVersionsNonNumericComponentsGracefullyDegraded() {
         let updater = makeUpdateChecker()
-        let result = updater.compareVersions(current: "1.2", latest: "v1.3-beta")
+        // 1.3 vs 1.0 (from 1.4-beta) -> 1.3 > 1.0 -> descending
+        let result = updater.compareVersions(current: "1.3", latest: "v1.4-beta")
         XCTAssertEqual(result, .orderedDescending)
     }
 
@@ -84,22 +85,20 @@ final class UpdateCheckerTests: XCTestCase {
     // MARK: - Last Check Date
 
     func testLastCheckDateNilWhenNeverChecked() {
-        let defaults = UserDefaults(suiteName: "UpdateCheckerTests")!
-        defaults.removePersistentDomain(forName: "UpdateCheckerTests")
-        
+        let defaults = UserDefaults()
         let updater = UpdateChecker(
             session: .shared,
             defaults: defaults,
             currentVersionProvider: { "1.0" },
             alertHandler: { _ in }
         )
+        // Ensure key is missing
+        defaults.removeObject(forKey: "lastUpdateCheckTimestamp")
         XCTAssertNil(updater.lastCheckDate)
     }
 
     func testCheckForUpdatesUpdatesTimestamp() async {
-        let defaults = UserDefaults(suiteName: "UpdateCheckerTests")!
-        defaults.removePersistentDomain(forName: "UpdateCheckerTests")
-        
+        let defaults = UserDefaults()
         let session = makeSession(statusCode: 404, data: Data())
         let updater = UpdateChecker(
             session: session,
@@ -107,12 +106,16 @@ final class UpdateCheckerTests: XCTestCase {
             currentVersionProvider: { "1.0" },
             alertHandler: { _ in }
         )
+        
+        defaults.removeObject(forKey: "lastUpdateCheckTimestamp")
 
         await updater.checkForUpdates()
 
         XCTAssertNotNil(updater.lastCheckDate)
         let intervalSinceNow = updater.lastCheckDate!.timeIntervalSinceNow
         XCTAssertGreaterThan(intervalSinceNow, -5)
+        
+        defaults.removeObject(forKey: "lastUpdateCheckTimestamp")
     }
 
     // MARK: - Network Layer
