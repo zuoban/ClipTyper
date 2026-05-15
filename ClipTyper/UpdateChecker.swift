@@ -74,42 +74,35 @@ final class UpdateChecker {
             Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         }
         self.releaseURL = releaseURL
-        self.alertHandler = alertHandler ?? { alert in
-            switch alert {
-            case .upToDate(let version):
-                UpdateChecker.showUpToDateAlert(currentVersion: version)
-            case .updateAvailable(let version, let release):
-                UpdateChecker.showUpdateAvailableAlert(currentVersion: version, release: release)
-            case .error(let message):
-                UpdateChecker.showErrorAlert(message: message)
-            }
-        }
+        self.alertHandler = alertHandler ?? { _ in }
     }
 
     func checkForUpdates() async {
+        alertHandler(await checkForUpdatesResult())
+    }
+
+    func checkForUpdatesResult() async -> UpdateAlert {
         defaults.set(Date().timeIntervalSince1970, forKey: lastCheckKey)
 
         guard let currentVersion = currentVersionProvider() else {
-            alertHandler(.error(message: NSLocalizedString("Unable to determine current app version.", comment: "")))
-            return
+            return .error(message: NSLocalizedString("Unable to determine current app version.", comment: ""))
         }
 
         do {
             guard let release = try await fetchLatestRelease() else {
-                alertHandler(.upToDate(currentVersion: currentVersion))
-                return
+                return .upToDate(currentVersion: currentVersion)
             }
 
             switch compareVersions(current: currentVersion, latest: release.tagName) {
             case .orderedAscending:
-                alertHandler(.updateAvailable(currentVersion: currentVersion, release: release))
+                return .updateAvailable(currentVersion: currentVersion, release: release)
             default:
-                alertHandler(.upToDate(currentVersion: currentVersion))
+                return .upToDate(currentVersion: currentVersion)
             }
         } catch let error as UpdateCheckError {
-            alertHandler(.error(message: error.localizedDescription))
+            return .error(message: error.localizedDescription)
         } catch {
-            alertHandler(.error(message: error.localizedDescription))
+            return .error(message: error.localizedDescription)
         }
     }
 
@@ -175,42 +168,4 @@ final class UpdateChecker {
         }
     }
 
-    private static func showUpToDateAlert(currentVersion: String) {
-        let alert = NSAlert()
-        alert.messageText = NSLocalizedString("You're up to date!", comment: "")
-        alert.informativeText = String.localizedStringWithFormat(
-            NSLocalizedString("ClipTyper %@ is currently the newest version available.", comment: ""),
-            currentVersion
-        )
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.runModal()
-    }
-
-    private static func showUpdateAvailableAlert(currentVersion: String, release: GitHubRelease) {
-        let alert = NSAlert()
-        alert.messageText = NSLocalizedString("New Version Available", comment: "")
-        alert.informativeText = String.localizedStringWithFormat(
-            NSLocalizedString("A new version of ClipTyper is available: %@ (you have %@).", comment: ""),
-            release.tagName,
-            currentVersion
-        )
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: NSLocalizedString("Download", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Later", comment: ""))
-
-        if alert.runModal() == .alertFirstButtonReturn {
-            NSWorkspace.shared.open(release.htmlURL)
-        }
-    }
-
-    private static func showErrorAlert(message: String) {
-        let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Unable to Check for Updates", comment: "")
-        alert.informativeText = NSLocalizedString("An error occurred while checking for updates.", comment: "")
-            + "\n\n" + message
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.runModal()
-    }
 }

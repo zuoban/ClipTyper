@@ -19,6 +19,10 @@
 "Typing..." = "正在输入...";
 "About ClipTyper" = "关于 ClipTyper";
 "Check for Updates..." = "检查更新...";
+"Updates" = "更新";
+"Version %@" = "版本 %@";
+"Checking for updates..." = "正在检查更新...";
+"Checking..." = "检查中...";
 "You're up to date!" = "已是最新版本！";
 "ClipTyper %@ is currently the newest version available." = "ClipTyper %@ 目前是最新版本。";
 "New Version Available" = "有新版本可用";

@@ -19,6 +19,10 @@
 "Typing..." = "Typing...";
 "About ClipTyper" = "About ClipTyper";
 "Check for Updates..." = "Check for Updates...";
+"Updates" = "Updates";
+"Version %@" = "Version %@";
+"Checking for updates..." = "Checking for updates...";
+"Checking..." = "Checking...";
 "You're up to date!" = "You're up to date!";
 "ClipTyper %@ is currently the newest version available." = "ClipTyper %@ is currently the newest version available.";
 "New Version Available" = "New Version Available";
