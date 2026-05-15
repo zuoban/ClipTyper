@@ -26,6 +26,17 @@ final class AutoTyperTests: XCTestCase {
         XCTAssertEqual(permissions.permissionRequestCount, 1)
     }
 
+    func testToggleTypingRequestsPermissionWhenAccessibilityIsMissing() {
+        let permissions = StubPermissionHandler(isTrusted: false)
+        let autoTyper = makeAutoTyper(clipboardText: "abc", permissionHandler: permissions)
+
+        autoTyper.toggleTyping()
+
+        XCTAssertFalse(autoTyper.isTyping)
+        XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Accessibility Permission Required", comment: ""))
+        XCTAssertEqual(permissions.permissionRequestCount, 1)
+    }
+
     func testStartTypingTypesClipboardCharacters() async {
         let typer = RecordingCharacterTyper()
         let autoTyper = makeAutoTyper(clipboardText: "ab", characterTyper: typer)
