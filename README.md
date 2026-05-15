@@ -96,6 +96,10 @@ git clone https://github.com/yourusername/ClipTyper.git
 open ClipTyper.xcodeproj
 ```
 
+### Acknowledgments
+
+Thanks to the Linux.do community for testing, feedback, and discussion.
+
 ### License
 
 [MIT License](LICENSE)
