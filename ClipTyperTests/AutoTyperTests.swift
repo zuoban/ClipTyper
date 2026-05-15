@@ -30,7 +30,7 @@ final class AutoTyperTests: XCTestCase {
         let autoTyper = makeAutoTyper(clipboardText: "ab", characterTyper: typer)
 
         autoTyper.startTyping()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await autoTyper.waitForCurrentTypingTaskCompletion()
 
         XCTAssertFalse(autoTyper.isTyping)
         XCTAssertNil(autoTyper.feedbackMessage)

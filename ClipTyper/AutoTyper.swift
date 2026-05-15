@@ -129,6 +129,10 @@ class AutoTyper: ObservableObject {
         showFeedback(NSLocalizedString("Typing stopped", comment: ""))
     }
 
+    func waitForCurrentTypingTaskCompletion() async {
+        await typingTask?.value
+    }
+
     private func finishTyping(runID: UUID, feedback: String?) {
         guard typingRunID == runID else { return }
 
