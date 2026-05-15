@@ -19,6 +19,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 permissionHandler.handlePermissionRequired()
             }
         }
+
+        setupAppMenu()
+    }
+
+    private func setupAppMenu() {
+        guard let mainMenu = NSApp.mainMenu,
+              let appMenu = mainMenu.items.first?.submenu else { return }
+
+        let aboutTitle = NSLocalizedString("About ClipTyper", comment: "")
+        let aboutItem = NSMenuItem(
+            title: aboutTitle,
+            action: #selector(AppDelegate.showAboutPanel),
+            keyEquivalent: ""
+        )
+        aboutItem.target = self
+        appMenu.insertItem(aboutItem, at: 0)
+
+        let updateItem = NSMenuItem(
+            title: NSLocalizedString("Check for Updates...", comment: ""),
+            action: #selector(AppDelegate.checkForUpdatesAction),
+            keyEquivalent: ""
+        )
+        updateItem.target = self
+        appMenu.insertItem(updateItem, at: 1)
+
+        appMenu.insertItem(.separator(), at: 2)
+    }
+
+    @objc private func checkForUpdatesAction() {
+        Task {
+            await UpdateChecker.shared.checkForUpdates()
+        }
+    }
+
+    @objc private func showAboutPanel() {
+        let credits = NSAttributedString(
+            string: "https://github.com/zuoban/ClipTyper",
+            attributes: [.link: URL(string: "https://github.com/zuoban/ClipTyper")!]
+        )
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
     nonisolated static func shouldPromptForPermissions(environment: [String: String]) -> Bool {
