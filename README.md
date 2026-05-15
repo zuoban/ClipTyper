@@ -10,7 +10,9 @@ ClipTyper 是一款专为 macOS 设计的原生菜单栏工具，它可以模拟
 
 ### 演示
 
-<video src="docs/assets/demo.mp4" controls width="720"></video>
+![ClipTyper 演示](docs/assets/demo.gif)
+
+[查看演示视频](docs/assets/demo.mp4)
 
 ### 核心功能
 
@@ -49,7 +51,9 @@ ClipTyper is a native macOS menu bar utility that simulates character-by-charact
 
 ### Demo
 
-<video src="docs/assets/demo.mp4" controls width="720"></video>
+![ClipTyper demo](docs/assets/demo.gif)
+
+[Watch the demo video](docs/assets/demo.mp4)
 
 ### Key Features
 
