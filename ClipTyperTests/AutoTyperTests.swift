@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class AutoTyperTests: XCTestCase {
-    func testStartTypingShowsFeedbackWhenClipboardIsEmpty() {
+    func testStartTypingShowsFeedbackWhenClipboardIsEmpty() async {
         let typer = RecordingCharacterTyper()
         let autoTyper = makeAutoTyper(clipboardText: nil, characterTyper: typer)
 
@@ -11,7 +11,8 @@ final class AutoTyperTests: XCTestCase {
 
         XCTAssertFalse(autoTyper.isTyping)
         XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("No text in clipboard", comment: ""))
-        XCTAssertTrue(typer.typedCharacters.isEmpty)
+        let typedCharacters = await typer.typedCharacters
+        XCTAssertTrue(typedCharacters.isEmpty)
     }
 
     func testStartTypingRequestsPermissionWhenAccessibilityIsMissing() {
@@ -33,10 +34,11 @@ final class AutoTyperTests: XCTestCase {
 
         XCTAssertFalse(autoTyper.isTyping)
         XCTAssertNil(autoTyper.feedbackMessage)
-        XCTAssertEqual(typer.typedCharacters, ["a", "b"])
+        let typedCharacters = await typer.typedCharacters
+        XCTAssertEqual(typedCharacters, ["a", "b"])
     }
 
-    func testStartTypingRejectsTextThatExceedsMaximumLength() {
+    func testStartTypingRejectsTextThatExceedsMaximumLength() async {
         let typer = RecordingCharacterTyper()
         let autoTyper = makeAutoTyper(
             clipboardText: "abcd",
@@ -48,7 +50,8 @@ final class AutoTyperTests: XCTestCase {
 
         XCTAssertFalse(autoTyper.isTyping)
         XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Clipboard text is too long", comment: ""))
-        XCTAssertTrue(typer.typedCharacters.isEmpty)
+        let typedCharacters = await typer.typedCharacters
+        XCTAssertTrue(typedCharacters.isEmpty)
     }
 
     func testStopTypingCancelsInProgressTyping() async {
@@ -58,12 +61,13 @@ final class AutoTyperTests: XCTestCase {
         autoTyper.startTyping()
         try? await Task.sleep(nanoseconds: 5_000_000)
         autoTyper.stopTyping()
-        let typedCountAfterStop = typer.typedCharacters.count
+        let typedCountAfterStop = await typer.typedCharacters.count
         try? await Task.sleep(nanoseconds: 80_000_000)
 
         XCTAssertFalse(autoTyper.isTyping)
         XCTAssertEqual(autoTyper.feedbackMessage, NSLocalizedString("Typing stopped", comment: ""))
-        XCTAssertEqual(typer.typedCharacters.count, typedCountAfterStop)
+        let typedCountAfterWaiting = await typer.typedCharacters.count
+        XCTAssertEqual(typedCountAfterWaiting, typedCountAfterStop)
     }
 
     private func makeAutoTyper(
@@ -114,15 +118,12 @@ private final class StubPermissionHandler: AccessibilityPermissionHandling {
     }
 }
 
-private final class RecordingCharacterTyper: CharacterTyping, @unchecked Sendable {
+private actor RecordingCharacterTyper: CharacterTyping {
     private var storage: [Character] = []
-    private let lock = NSLock()
     private let delayNanoseconds: UInt64
 
     var typedCharacters: [Character] {
-        lock.lock()
-        defer { lock.unlock() }
-        return storage
+        storage
     }
 
     init(delayNanoseconds: UInt64 = 0) {
@@ -130,9 +131,7 @@ private final class RecordingCharacterTyper: CharacterTyping, @unchecked Sendabl
     }
 
     func typeCharacter(_ char: Character) async {
-        lock.lock()
         storage.append(char)
-        lock.unlock()
 
         if delayNanoseconds > 0 {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
