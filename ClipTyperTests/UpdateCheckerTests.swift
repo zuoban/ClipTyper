@@ -7,37 +7,37 @@ final class UpdateCheckerTests: XCTestCase {
 
     func testCompareVersionsSame() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.3"), .orderedSame)
+        XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.1"), .orderedSame)
     }
 
     func testCompareVersionsSameNoVPrefix() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "1.3"), .orderedSame)
+        XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "1.3.1"), .orderedSame)
     }
 
     func testCompareVersionsNewerPatch() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.3.1"), .orderedAscending)
+        XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.2"), .orderedAscending)
     }
 
     func testCompareVersionsNewerMinor() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.4"), .orderedAscending)
+        XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.4"), .orderedAscending)
     }
 
     func testCompareVersionsNewerMajor() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v2.0"), .orderedAscending)
+        XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v2.0"), .orderedAscending)
     }
 
     func testCompareVersionsOlder() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.5", latest: "v1.3"), .orderedDescending)
+        XCTAssertEqual(updater.compareVersions(current: "1.5", latest: "v1.3.1"), .orderedDescending)
     }
 
     func testCompareVersionsShortVsLong() {
         let updater = makeUpdateChecker()
-        XCTAssertEqual(updater.compareVersions(current: "1.3", latest: "v1.3.0.0"), .orderedSame)
+        XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.1.0"), .orderedSame)
     }
 
     func testCompareVersionsZeroComparison() {
@@ -47,8 +47,8 @@ final class UpdateCheckerTests: XCTestCase {
 
     func testCompareVersionsNonNumericComponentsGracefullyDegraded() {
         let updater = makeUpdateChecker()
-        // 1.3 vs 1.0 (from 1.4-beta) -> 1.3 > 1.0 -> descending
-        let result = updater.compareVersions(current: "1.3", latest: "v1.4-beta")
+        // 1.3.1 vs 1.0 (from 1.4-beta) -> 1.3.1 > 1.0 -> descending
+        let result = updater.compareVersions(current: "1.3.1", latest: "v1.4-beta")
         XCTAssertEqual(result, .orderedDescending)
     }
 
@@ -57,16 +57,16 @@ final class UpdateCheckerTests: XCTestCase {
     func testParseGitHubReleaseValid() throws {
         let json = """
         {
-            "tag_name": "v1.3.0",
-            "html_url": "https://github.com/zuoban/ClipTyper/releases/tag/v1.3.0",
-            "name": "Release v1.3.0"
+            "tag_name": "v1.3.1",
+            "html_url": "https://github.com/zuoban/ClipTyper/releases/tag/v1.3.1",
+            "name": "Release v1.3.1"
         }
         """.data(using: .utf8)!
 
         let release = try JSONDecoder().decode(GitHubRelease.self, from: json)
-        XCTAssertEqual(release.tagName, "v1.3.0")
-        XCTAssertEqual(release.htmlURL.absoluteString, "https://github.com/zuoban/ClipTyper/releases/tag/v1.3.0")
-        XCTAssertEqual(release.name, "Release v1.3.0")
+        XCTAssertEqual(release.tagName, "v1.3.1")
+        XCTAssertEqual(release.htmlURL.absoluteString, "https://github.com/zuoban/ClipTyper/releases/tag/v1.3.1")
+        XCTAssertEqual(release.name, "Release v1.3.1")
     }
 
     func testParseGitHubReleaseMissingOptionalName() throws {
@@ -86,8 +86,9 @@ final class UpdateCheckerTests: XCTestCase {
 
     func testLastCheckDateNilWhenNeverChecked() {
         let defaults = UserDefaults()
+        let session = URLSession(configuration: .ephemeral)
         let updater = UpdateChecker(
-            session: .shared,
+            session: session,
             defaults: defaults,
             currentVersionProvider: { "1.0" },
             alertHandler: { _ in }
@@ -123,8 +124,8 @@ final class UpdateCheckerTests: XCTestCase {
     func testFetchReleaseSuccess() async {
         let json = """
         {
-            "tag_name": "v1.3.0",
-            "html_url": "https://github.com/zuoban/ClipTyper/releases/tag/v1.3.0",
+            "tag_name": "v1.3.1",
+            "html_url": "https://github.com/zuoban/ClipTyper/releases/tag/v1.3.1",
             "name": null
         }
         """
@@ -134,7 +135,7 @@ final class UpdateCheckerTests: XCTestCase {
         let release = try? await updater.invokeFetchLatestRelease()
 
         XCTAssertNotNil(release)
-        XCTAssertEqual(release?.tagName, "v1.3.0")
+        XCTAssertEqual(release?.tagName, "v1.3.1")
     }
 
     func testFetchReleaseReturnsNilOn404() async {
@@ -211,11 +212,13 @@ final class UpdateCheckerTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeUpdateChecker(
-        session: URLSession = .shared,
-        defaults: UserDefaults = .standard,
+        session: URLSession? = nil,
+        defaults: UserDefaults? = nil,
         currentVersion: String = "1.0"
     ) -> UpdateChecker {
-        UpdateChecker(
+        let session = session ?? URLSession(configuration: .ephemeral)
+        let defaults = defaults ?? UserDefaults()
+        return UpdateChecker(
             session: session,
             defaults: defaults,
             currentVersionProvider: { currentVersion },
