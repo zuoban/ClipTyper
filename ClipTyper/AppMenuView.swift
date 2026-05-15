@@ -94,6 +94,29 @@ struct AppMenuView: View {
 
             Divider()
 
+            // About & Updates
+            HStack {
+                Button(NSLocalizedString("About ClipTyper", comment: "")) {
+                    let credits = NSAttributedString(
+                        string: "https://github.com/zuoban/ClipTyper",
+                        attributes: [.link: URL(string: "https://github.com/zuoban/ClipTyper")!]
+                    )
+                    NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
+                }
+                .controlSize(.small)
+
+                Spacer()
+
+                Button(NSLocalizedString("Check for Updates...", comment: "")) {
+                    Task {
+                        await UpdateChecker.shared.checkForUpdates()
+                    }
+                }
+                .controlSize(.small)
+            }
+
+            Divider()
+
             // Footer with Permissions & Quit
             HStack {
                 Button {
