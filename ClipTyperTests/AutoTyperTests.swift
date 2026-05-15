@@ -244,7 +244,7 @@ private actor RecordingCharacterTyper: CharacterTyping {
         self.waitsForManualFinish = waitsForManualFinish
     }
 
-    func typeCharacter(_ char: Character) async -> Bool {
+    func typeCharacter(_ char: Character, targetPID: pid_t?) async -> Bool {
         activeTypingCount += 1
         defer { activeTypingCount -= 1 }
 

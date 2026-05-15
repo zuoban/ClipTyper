@@ -36,7 +36,7 @@ protocol AccessibilityPermissionPrompting {
 }
 
 nonisolated protocol CharacterTyping: Sendable {
-    func typeCharacter(_ char: Character) async -> Bool
+    func typeCharacter(_ char: Character, targetPID: pid_t?) async -> Bool
 }
 
 struct SystemClipboardProvider: ClipboardTextProviding {
@@ -92,19 +92,31 @@ nonisolated struct CGEventCharacterTyper: CharacterTyping {
         self.keyDownUpDelayNanoseconds = keyDownUpDelayNanoseconds
     }
 
-    func typeCharacter(_ char: Character) async -> Bool {
+    func typeCharacter(_ char: Character, targetPID: pid_t?) async -> Bool {
         let source = CGEventSource(stateID: .combinedSessionState)
         let utf16Chars = Array(String(char).utf16)
 
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
         keyDown?.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: utf16Chars)
-        guard keyDown?.post(tap: .cghidEventTap) != nil else { return false }
+
+        if let pid = targetPID {
+            guard let keyDown = keyDown else { return false }
+            keyDown.postToPid(pid)
+        } else {
+            guard keyDown?.post(tap: .cghidEventTap) != nil else { return false }
+        }
 
         try? await Task.sleep(nanoseconds: keyDownUpDelayNanoseconds)
 
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
         keyUp?.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: utf16Chars)
-        guard keyUp?.post(tap: .cghidEventTap) != nil else { return false }
+
+        if let pid = targetPID {
+            guard let keyUp = keyUp else { return false }
+            keyUp.postToPid(pid)
+        } else {
+            guard keyUp?.post(tap: .cghidEventTap) != nil else { return false }
+        }
 
         return true
     }
