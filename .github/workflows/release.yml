@@ -39,14 +39,25 @@ jobs:
 
       - name: Build Application
         run: |
-          xcodebuild clean build \
+          xcodebuild build \
             -project ClipTyper.xcodeproj \
             -scheme ClipTyper \
             -configuration Release \
+            -derivedDataPath .derivedData \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=YES \
-            CODE_SIGNING_ALLOWED=YES \
-            CONFIGURATION_BUILD_DIR=${{ github.workspace }}/build
+            CODE_SIGNING_ALLOWED=YES
+          mkdir -p build
+          cp -R .derivedData/Build/Products/Release/ClipTyper.app build/
+
+      - name: Verify Build Output
+        run: |
+          if [ ! -d "build/ClipTyper.app" ]; then
+            echo "ERROR: build/ClipTyper.app not found"
+            ls -la build/ || true
+            exit 1
+          fi
+          echo "Build output verified: build/ClipTyper.app"
 
       - name: Run Tests
         run: |
@@ -80,6 +91,15 @@ jobs:
         with:
           name: ClipTyper-app
           path: build
+
+      - name: Verify Downloaded Artifact
+        run: |
+          if [ ! -d "build/ClipTyper.app" ]; then
+            echo "ERROR: build/ClipTyper.app not found after download"
+            ls -la build/ || true
+            exit 1
+          fi
+          echo "Artifact verified: build/ClipTyper.app"
 
       - name: Import Developer ID Certificate
         if: ${{ env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && env.DEVELOPER_ID_CERTIFICATE_PASSWORD != '' }}
