@@ -1,50 +1,58 @@
 import XCTest
 @testable import ClipTyper
 
-@MainActor
 final class UpdateCheckerTests: XCTestCase {
     // MARK: - Version Comparison
 
+    @MainActor
     func testCompareVersionsSame() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.1"), .orderedSame)
     }
 
+    @MainActor
     func testCompareVersionsSameNoVPrefix() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "1.3.1"), .orderedSame)
     }
 
+    @MainActor
     func testCompareVersionsNewerPatch() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.2"), .orderedAscending)
     }
 
+    @MainActor
     func testCompareVersionsNewerMinor() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.4"), .orderedAscending)
     }
 
+    @MainActor
     func testCompareVersionsNewerMajor() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v2.0"), .orderedAscending)
     }
 
+    @MainActor
     func testCompareVersionsOlder() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.5", latest: "v1.3.1"), .orderedDescending)
     }
 
+    @MainActor
     func testCompareVersionsShortVsLong() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "1.3.1", latest: "v1.3.1.0"), .orderedSame)
     }
 
+    @MainActor
     func testCompareVersionsZeroComparison() {
         let updater = makeUpdateChecker()
         XCTAssertEqual(updater.compareVersions(current: "0.0", latest: "v0.0.0"), .orderedSame)
     }
 
+    @MainActor
     func testCompareVersionsNonNumericComponentsGracefullyDegraded() {
         let updater = makeUpdateChecker()
         // 1.3.1 vs 1.0 (from 1.4-beta) -> 1.3.1 > 1.0 -> descending
@@ -54,6 +62,7 @@ final class UpdateCheckerTests: XCTestCase {
 
     // MARK: - GitHubRelease Decoding
 
+    @MainActor
     func testParseGitHubReleaseValid() throws {
         let json = """
         {
@@ -69,6 +78,7 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertEqual(release.name, "Release v1.3.1")
     }
 
+    @MainActor
     func testParseGitHubReleaseMissingOptionalName() throws {
         let json = """
         {
@@ -84,6 +94,7 @@ final class UpdateCheckerTests: XCTestCase {
 
     // MARK: - Last Check Date
 
+    @MainActor
     func testLastCheckDateNilWhenNeverChecked() {
         let defaults = UserDefaults()
         let session = URLSession(configuration: .ephemeral)
@@ -98,6 +109,7 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertNil(updater.lastCheckDate)
     }
 
+    @MainActor
     func testCheckForUpdatesUpdatesTimestamp() async {
         let defaults = UserDefaults()
         let session = makeSession(statusCode: 404, data: Data())
@@ -121,6 +133,7 @@ final class UpdateCheckerTests: XCTestCase {
 
     // MARK: - Network Layer
 
+    @MainActor
     func testFetchReleaseSuccess() async {
         let json = """
         {
@@ -138,6 +151,7 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertEqual(release?.tagName, "v1.3.1")
     }
 
+    @MainActor
     func testFetchReleaseReturnsNilOn404() async {
         let session = makeSession(statusCode: 404, data: Data())
         let updater = makeUpdateChecker(session: session)
@@ -147,6 +161,7 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertNil(release)
     }
 
+    @MainActor
     func testFetchReleaseThrowsOn500() async {
         let session = makeSession(statusCode: 500, data: Data())
         let updater = makeUpdateChecker(session: session)
@@ -165,6 +180,7 @@ final class UpdateCheckerTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testFetchReleaseThrowsOnInvalidJSON() async {
         let session = makeSession(statusCode: 200, data: "not json".data(using: .utf8)!)
         let updater = makeUpdateChecker(session: session)
@@ -179,6 +195,7 @@ final class UpdateCheckerTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testFetchReleaseThrowsOnRateLimit() async {
         let session = makeSession(statusCode: 403, data: Data())
         let updater = makeUpdateChecker(session: session)
@@ -193,6 +210,7 @@ final class UpdateCheckerTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testFetchReleaseThrowsNoInternet() async {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [ErrorURLProtocol.self]
@@ -211,6 +229,7 @@ final class UpdateCheckerTests: XCTestCase {
 
     // MARK: - Helpers
 
+    @MainActor
     private func makeUpdateChecker(
         session: URLSession? = nil,
         defaults: UserDefaults? = nil,
